@@ -32,14 +32,12 @@ private:
     const double pi = 3.14159265358979323846;
     std::vector<complex> a, b;
     std::vector<int> r;
-    int n, h;
-
-    void brc(std::vector<complex> &cv);
+    int n;
 
     void solveFFT(std::vector<complex> &cv, int on);
 
 public:
-    void solveMultiply(const std::vector<char> &c, const std::vector<char> &d, std::vector<char> &ans);
+    void solveMultiply(const std::vector<char> &c, const std::vector<char> &d, std::vector<int> &ans);
 
 };
 

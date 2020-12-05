@@ -22,22 +22,15 @@ inline void FFT::swapC(complex &x, complex &y) {
     y = temp;
 }
 
-void FFT::brc(std::vector<complex> &cv) {
-    int i, j, k;
-    for (i = 1, j = n / 2; i < n - 1; i++) {
-        if (i < j) swapC(cv[i], cv[j]);
-        k = n / 2;
-        while (j >= k) {
-            j -= k;
-            k >>= 1;
-        }
-        if (j < k) j += k;
-    }
-}
-
 void FFT::solveFFT(std::vector<complex> &cv, int on) {
+    std::printf("cp01\n");
     int i;
-    brc(cv);
+    for (i = 0; i < n; ++i) {
+        if (r[i] != -1)
+            swapC(cv[i], cv[r[i]]);
+    }
+
+    std::printf("cp02\n");
 
     for (int h = 2; h <= n; h <<= 1) {
         int tempLen = h >> 1;
@@ -52,31 +45,48 @@ void FFT::solveFFT(std::vector<complex> &cv, int on) {
                 w = w * wn;
             }
         }
+        std::printf("cp03\n");
     }
     if (on == -1) {
         for (i = 0; i < n; ++i) cv[i].re /= n;
     }
 }
 
-void FFT::solveMultiply(const std::vector<char> &c, const std::vector<char> &d, std::vector<char> &ans) {
+void FFT::solveMultiply(const std::vector<char> &c, const std::vector<char> &d, std::vector<int> &ans) {
     int i;
     a.clear(), b.clear(), r.clear(), ans.clear();
-    for (h = 0, n = 1; n < c.size() + d.size() - 1; ++h)n <<= 1;
+    int t;
+    std::vector<int> dig;
+    for (t = 0, n = 1; n < c.size() + d.size() - 1; n <<= 1)++t;
+    r.resize(n, 0);
+    dig.resize(n, 0);
+    for (i = 0; i < n; ++i) {
+        int tempLen = 0;
+        putchar(10);
+        for (int j = i; j; j >>= 1)dig[tempLen++] = j & 1;
+        for (int j = 0; j < t; ++j) {
+            r[i] = (r[i] << 1) | dig[j];
+        }
 
+    }
+    for (i = 0; i < n; ++i) {
+        if (r[i] != -1 || r[i] >= n)
+            r[r[i]] = -1;
+    }
     for (i = 0; i < c.size(); ++i)
         a.emplace_back(complex(c[i], 0));
     for (i = 0; i < d.size(); ++i)
         b.emplace_back(complex(d[i], 0));
     a.resize(n, 0), b.resize(n, 0);
 
-    std::cout << "cp1" << std::endl;
+
     solveFFT(a, 1);
     solveFFT(b, 1);
     for (i = 0; i < n; ++i)a[i] = a[i] * b[i];
-    std::cout << "cp2" << std::endl;
     solveFFT(a, -1);
+
     for (i = 0; i < n; ++i)
-        ans.emplace_back(round(a[i].re));
+        ans.emplace_back(int(round(a[i].re)));
 }
 
 bool HighPrecision::digitLess(const HighPrecision &x, const HighPrecision &y) const {
@@ -236,28 +246,38 @@ HighPrecision HighPrecision::operator-(const HighPrecision &arg) const {
         }
         while (*(tempBigInt.num.rbegin()) == 0)
             tempBigInt.num.erase(tempBigInt.num.end() - 1);
+        if (tempBigInt.num.size() == 0) {
+            tempBigInt.sign = 1;
+            tempBigInt.num.push_back(0);
+        }
         return tempBigInt;
     } else
         return ((*this) + (-arg));
 }
 
 HighPrecision HighPrecision::operator*(const HighPrecision &arg) const {
-    HighPrecision tempAns;
-    FFTcmd.solveMultiply(this->num, arg.num, tempAns.num);
+    HighPrecision ans;
+    std::vector<int> tempAns;
+    ans.sign = (this->sign == arg.sign) ? 1 : 0;
 
-    for (int i = 0; i < tempAns.num.size() - 1; ++i)
-        std::cout << int(tempAns.num[i]) << std::endl;
+    FFTcmd.solveMultiply(this->num, arg.num, tempAns);
 
-    for (int i = 0; i < tempAns.num.size() - 1; ++i) {
-        if (tempAns.num[i] > 9) {
-            tempAns.num[i + 1] += tempAns.num[i] / 10;
-            tempAns.num[i] %= 10;
+    for (int i = 0; i < tempAns.size() - 1; ++i) {
+        if (tempAns[i] > 9) {
+            tempAns[i + 1] += tempAns[i] / 10;
+            tempAns[i] %= 10;
         }
-        while (*tempAns.num.rbegin() > 9) {
-            tempAns.num.emplace_back((*tempAns.num.rbegin()) / 10);
-            *(tempAns.num.end() - 2) %= 10;
-        }
-
     }
-    return tempAns;
+    while (*tempAns.rbegin() > 9) {
+        tempAns.emplace_back((*tempAns.rbegin()) / 10);
+        *(tempAns.end() - 2) %= 10;
+    }
+    while (*tempAns.rbegin() == 0)
+        tempAns.erase(tempAns.end() - 1);
+
+    ans.num.resize(tempAns.size(), 0);
+    for (int i = 0; i < tempAns.size(); ++i)
+        ans.num[i] = tempAns[i];
+
+    return ans;
 }
