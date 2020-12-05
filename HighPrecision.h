@@ -29,12 +29,14 @@ private:
 
     inline void swapC(complex &x, complex &y);
 
-    const double pi = acos(-1.0);
+    const double pi = 3.14159265358979323846;
     std::vector<complex> a, b;
     std::vector<int> r;
     int n, h;
 
-    void solveFFT(std::vector<complex> cv, int on);
+    void brc(std::vector<complex> &cv);
+
+    void solveFFT(std::vector<complex> &cv, int on);
 
 public:
     void solveMultiply(const std::vector<char> &c, const std::vector<char> &d, std::vector<char> &ans);

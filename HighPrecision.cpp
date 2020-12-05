@@ -22,19 +22,31 @@ inline void FFT::swapC(complex &x, complex &y) {
     y = temp;
 }
 
-void FFT::solveFFT(std::vector<complex> cv, int on) {
-    int i;
-    for (i = 0; i < n; ++i) {
-        if (i < r[i])
-            swapC(cv[i], cv[r[i]]);
+void FFT::brc(std::vector<complex> &cv) {
+    int i, j, k;
+    for (i = 1, j = n / 2; i < n - 1; i++) {
+        if (i < j) swapC(cv[i], cv[j]);
+        k = n / 2;
+        while (j >= k) {
+            j -= k;
+            k >>= 1;
+        }
+        if (j < k) j += k;
     }
-    for (int len = 2; len <= n; len <<= 1) {
-        int tempLen = len >> 1;
-        complex wn(std::cos(pi / tempLen), on * sin(pi / tempLen));
-        for (int st = 0; st < n; st += len) {
+}
+
+void FFT::solveFFT(std::vector<complex> &cv, int on) {
+    int i;
+    brc(cv);
+
+    for (int h = 2; h <= n; h <<= 1) {
+        int tempLen = h >> 1;
+        complex wn(cos(pi / tempLen), on * sin(pi / tempLen));
+        for (int st = 0; st < n; st += h) {
             complex w(1, 0);
             for (i = 0; i < tempLen; ++i) {
-                complex tc1 = cv[st + i], tc2 = w * cv[st + i + tempLen];
+                complex tc1 = cv[st + i];
+                complex tc2 = w * cv[st + i + tempLen];
                 cv[st + i] = tc1 + tc2;
                 cv[st + i + tempLen] = tc1 - tc2;
                 w = w * wn;
@@ -42,27 +54,20 @@ void FFT::solveFFT(std::vector<complex> cv, int on) {
         }
     }
     if (on == -1) {
-        for (i = 0; i < n; ++i)
-            cv[i].re /= n;
+        for (i = 0; i < n; ++i) cv[i].re /= n;
     }
-
 }
 
 void FFT::solveMultiply(const std::vector<char> &c, const std::vector<char> &d, std::vector<char> &ans) {
     int i;
     a.clear(), b.clear(), r.clear(), ans.clear();
     for (h = 0, n = 1; n < c.size() + d.size() - 1; ++h)n <<= 1;
-    a.resize(n, 0), b.resize(n, 0);
-    r.emplace_back(0);
 
     for (i = 0; i < c.size(); ++i)
         a.emplace_back(complex(c[i], 0));
     for (i = 0; i < d.size(); ++i)
         b.emplace_back(complex(d[i], 0));
-
-    for (i = 1; i < n; ++i) {
-        r.emplace_back((r[i >> 1] >> 1) | ((i & 1) << (h - 1)));
-    }
+    a.resize(n, 0), b.resize(n, 0);
 
     std::cout << "cp1" << std::endl;
     solveFFT(a, 1);
@@ -70,7 +75,7 @@ void FFT::solveMultiply(const std::vector<char> &c, const std::vector<char> &d, 
     for (i = 0; i < n; ++i)a[i] = a[i] * b[i];
     std::cout << "cp2" << std::endl;
     solveFFT(a, -1);
-    for (i = 0; i < c.size() + d.size() - 1; ++i)
+    for (i = 0; i < n; ++i)
         ans.emplace_back(round(a[i].re));
 }
 
@@ -238,9 +243,11 @@ HighPrecision HighPrecision::operator-(const HighPrecision &arg) const {
 
 HighPrecision HighPrecision::operator*(const HighPrecision &arg) const {
     HighPrecision tempAns;
-    FFTcmd.solveMultiply(this->num, arg.num, tempAns.num);\
+    FFTcmd.solveMultiply(this->num, arg.num, tempAns.num);
+
     for (int i = 0; i < tempAns.num.size() - 1; ++i)
-        std::cout << char(tempAns.num[i] + 48) << std::endl;
+        std::cout << int(tempAns.num[i]) << std::endl;
+
     for (int i = 0; i < tempAns.num.size() - 1; ++i) {
         if (tempAns.num[i] > 9) {
             tempAns.num[i + 1] += tempAns.num[i] / 10;
@@ -250,6 +257,7 @@ HighPrecision HighPrecision::operator*(const HighPrecision &arg) const {
             tempAns.num.emplace_back((*tempAns.num.rbegin()) / 10);
             *(tempAns.num.end() - 2) %= 10;
         }
+
     }
     return tempAns;
 }
