@@ -51,11 +51,11 @@ private:
 
 public:
 
-    HighPrecision();
+    HighPrecision(int k = 0);
 
     HighPrecision(const std::string &arg);
 
-    HighPrecision(const HighPrecision &arg, char negativeFlag = 0);
+    HighPrecision(const HighPrecision &arg, char negativeFlag = 0, int bitwiseMove = 0);
 
 
     void print() const;
@@ -89,6 +89,12 @@ public:
     HighPrecision operator-(const HighPrecision &arg) const;
 
     HighPrecision operator*(const HighPrecision &arg) const;
+
+    HighPrecision operator*(int arg) const;
+
+    HighPrecision operator<<(const int &arg) const;
+
+    HighPrecision operator>>(const int arg) const;
 
     HighPrecision operator/(const HighPrecision &arg) const;
 

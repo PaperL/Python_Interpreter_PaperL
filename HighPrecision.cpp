@@ -2,9 +2,13 @@
 // Created by PaperL on 2020/12/4.
 //
 
+#define warning
+
 #include "HighPrecision.h"
 
 FFT FFTcmd;
+
+const HighPrecision highPrecisionZero(0);
 
 FFT::complex::complex(double tx, double ty) : re(tx), im(ty) {}
 
@@ -23,14 +27,11 @@ inline void FFT::swapC(complex &x, complex &y) {
 }
 
 void FFT::solveFFT(std::vector<complex> &cv, int on) {
-    std::printf("cp01\n");
     int i;
     for (i = 0; i < n; ++i) {
         if (r[i] != -1)
             swapC(cv[i], cv[r[i]]);
     }
-
-    std::printf("cp02\n");
 
     for (int h = 2; h <= n; h <<= 1) {
         int tempLen = h >> 1;
@@ -45,7 +46,6 @@ void FFT::solveFFT(std::vector<complex> &cv, int on) {
                 w = w * wn;
             }
         }
-        std::printf("cp03\n");
     }
     if (on == -1) {
         for (i = 0; i < n; ++i) cv[i].re /= n;
@@ -62,12 +62,8 @@ void FFT::solveMultiply(const std::vector<char> &c, const std::vector<char> &d, 
     dig.resize(n, 0);
     for (i = 0; i < n; ++i) {
         int tempLen = 0;
-        putchar(10);
         for (int j = i; j; j >>= 1)dig[tempLen++] = j & 1;
-        for (int j = 0; j < t; ++j) {
-            r[i] = (r[i] << 1) | dig[j];
-        }
-
+        for (int j = 0; j < t; ++j) r[i] = (r[i] << 1) | dig[j];
     }
     for (i = 0; i < n; ++i) {
         if (r[i] != -1 || r[i] >= n)
@@ -79,30 +75,37 @@ void FFT::solveMultiply(const std::vector<char> &c, const std::vector<char> &d, 
         b.emplace_back(complex(d[i], 0));
     a.resize(n, 0), b.resize(n, 0);
 
-
     solveFFT(a, 1);
     solveFFT(b, 1);
     for (i = 0; i < n; ++i)a[i] = a[i] * b[i];
     solveFFT(a, -1);
 
     for (i = 0; i < n; ++i)
-        ans.emplace_back(int(round(a[i].re)));
+        ans.emplace_back(round(a[i].re));
 }
 
 bool HighPrecision::digitLess(const HighPrecision &x, const HighPrecision &y) const {
     if (x.num.size() != y.num.size())
         return (x.num.size() < y.num.size());
-    for (int i = 0; i < x.num.size(); ++i) {
+    for (int i = x.num.size() - 1; i >= 0; --i) {
         if (x.num[i] != y.num[i])
             return (x.num[i] < y.num[i]);
     }
     return false;
 }
 
-HighPrecision::HighPrecision() : sign(1) { num.clear(); }
+HighPrecision::HighPrecision(int k) : sign((k < 0) ? 0 : 1) {
+    if (k == 0)
+        num.emplace_back(0);
+    else {
+        while (k != 0) {
+            num.emplace_back(k % 10);
+            k /= 10;
+        }
+    }
+}
 
 HighPrecision::HighPrecision(const std::string &arg) {
-    num.clear();
     if (arg.empty())
         sign = 1;
     else {
@@ -113,11 +116,33 @@ HighPrecision::HighPrecision(const std::string &arg) {
     }
 }
 
-HighPrecision::HighPrecision(const HighPrecision &arg, char negativeFlag) : num(arg.num) {
-    sign = (negativeFlag == 1) ? (1 - arg.sign) : arg.sign;
+HighPrecision::HighPrecision(const HighPrecision &arg, char negativeFlag, int bitwiseMove) {
+    if (-bitwiseMove >= int(arg.num.size())) {
+        *this = highPrecisionZero;
+    } else {
+        sign = (negativeFlag == 1) ? (1 - arg.sign) : arg.sign;
+        num.resize(bitwiseMove + int(arg.num.size()), 0);
+        if (bitwiseMove < 0) {
+            for (int i = 0; i < bitwiseMove + int(arg.num.size()); ++i)
+                num[i] = arg.num[i - bitwiseMove];
+        } else {
+            for (int i = 0; i < arg.num.size(); ++i)
+                num[bitwiseMove + i] = arg.num[i];
+        }
+    }
 }
 
 void HighPrecision::print() const {
+
+#ifdef warning
+    if(sign!=0 && sign!=1)
+        printf("WARNING: sign!=0 or 1 !\n");
+    if(num.size()==0)
+        printf("WARNING: size==0!\n");
+    if(sign==0 && num.size()==1 && num[0]==0)
+        printf("WARNING: negative zero!\n");
+#endif
+
     if (sign == 0)putchar('-');
     for (int i = num.size() - 1; i >= 0; --i)
         putchar(num[i] + 48);
@@ -186,6 +211,7 @@ HighPrecision HighPrecision::operator+(const HighPrecision &arg) const {//todo æ
     if (this->sign == arg.sign) {
         HighPrecision tempBigInt;
         tempBigInt.sign = this->sign;
+        tempBigInt.num.clear();
         int l1 = this->num.size(), l2 = arg.num.size();
         if (l1 > l2) {
             for (int i = 0; i < l2; ++i)
@@ -230,9 +256,13 @@ HighPrecision HighPrecision::operator+(const HighPrecision &arg) const {//todo æ
 HighPrecision HighPrecision::operator-(const HighPrecision &arg) const {
     if (this->sign == arg.sign) {
         if (digitLess(*this, arg))
-            return (arg - (*this));
+            return (-(arg - (*this)));
+        if ((*this) == arg)
+            return highPrecisionZero;
+
         HighPrecision tempBigInt;
         tempBigInt.sign = this->sign;
+        tempBigInt.num.clear();
         int i;
         for (i = 0; i < arg.num.size(); ++i)
             tempBigInt.num.emplace_back(this->num[i] - arg.num[i]);
@@ -246,16 +276,15 @@ HighPrecision HighPrecision::operator-(const HighPrecision &arg) const {
         }
         while (*(tempBigInt.num.rbegin()) == 0)
             tempBigInt.num.erase(tempBigInt.num.end() - 1);
-        if (tempBigInt.num.size() == 0) {
-            tempBigInt.sign = 1;
-            tempBigInt.num.push_back(0);
-        }
         return tempBigInt;
     } else
         return ((*this) + (-arg));
 }
 
 HighPrecision HighPrecision::operator*(const HighPrecision &arg) const {
+    if ((*this) == highPrecisionZero || arg == highPrecisionZero)
+        return highPrecisionZero;
+
     HighPrecision ans;
     std::vector<int> tempAns;
     ans.sign = (this->sign == arg.sign) ? 1 : 0;
@@ -280,4 +309,106 @@ HighPrecision HighPrecision::operator*(const HighPrecision &arg) const {
         ans.num[i] = tempAns[i];
 
     return ans;
+}
+
+HighPrecision HighPrecision::operator*(int arg) const {
+    if (arg == 0)
+        return highPrecisionZero;
+    if (arg == 1)
+        return *this;
+    if (arg == -1)
+        return HighPrecision((*this), 1);
+
+    HighPrecision ans;
+    if (arg < 0) {
+        arg = -arg;
+        ans.sign = 1 - this->sign;
+    } else ans.sign = this->sign;
+
+    int t, carry = 0;
+    ans.num.clear();
+    for (int i = 0; i < this->num.size(); ++i) {
+        t = int(this->num[i]) * arg + carry;
+        carry = t / 10;
+        t %= 10;
+        ans.num.emplace_back(t);
+    }
+
+    while (carry) {
+        t = carry % 10;
+        carry /= 10;
+        ans.num.emplace_back(t);
+    }
+    return ans;
+}
+
+HighPrecision HighPrecision::operator<<(const int &arg) const {
+    return HighPrecision((*this), 0, arg);
+}
+
+HighPrecision HighPrecision::operator>>(const int arg) const {
+    return HighPrecision((*this), 0, -arg);
+}
+
+HighPrecision HighPrecision::operator/(const HighPrecision &arg) const {
+    if (arg == highPrecisionZero || (*this) == highPrecisionZero)
+        return highPrecisionZero;
+    if (digitLess((*this), arg))return highPrecisionZero;
+    HighPrecision ans;
+    std::vector<char> tempAns;
+    ans.sign = (this->sign == arg.sign) ? 1 : 0;
+    ans.num.clear();
+
+    HighPrecision myself(*this, 1 - this->sign);
+    HighPrecision tempNum;
+    int i, j;
+    for (i = myself.num.size() - arg.num.size(); i >= 0; --i) {
+        HighPrecision tempMulti(arg, 1 - arg.sign, i);
+        j = 0;
+        for (j = 1; j <= 9; ++j) {
+            tempNum = tempMulti * j;
+            if (tempNum > myself) {
+                --j;
+                break;
+            }
+        }
+        if (j == 10)j = 9;
+        if (j != 0)
+            myself = myself - tempMulti * j;
+        tempAns.emplace_back(j);
+    }
+
+    i = 0;
+    while (tempAns[i] == 0)++i;
+    for (j = 0; j < tempAns.size() - i; ++j)
+        ans.num.emplace_back(tempAns[tempAns.size() - 1 - j]);
+
+    return ans;
+}
+
+HighPrecision HighPrecision::operator%(const HighPrecision &arg) const {
+    if (arg == highPrecisionZero || (*this) == highPrecisionZero)
+        return highPrecisionZero;
+    if (digitLess((*this), arg))return (*this);
+
+    HighPrecision myself(*this, 1 - this->sign);
+    HighPrecision tempNum;
+    int i, j;
+    for (i = myself.num.size() - arg.num.size(); i >= 0; --i) {
+        HighPrecision tempMulti(arg, 1 - arg.sign, i);
+        j = 0;
+        for (j = 1; j <= 9; ++j) {
+            tempNum = tempMulti * j;
+            if (tempNum > myself) {
+                --j;
+                break;
+            }
+        }
+        if (j == 10)j = 9;
+        if (j != 0)
+            myself = myself - tempMulti * j;
+    }
+    if (this->sign == 1 || myself == highPrecisionZero)
+        return myself;
+    else return (-myself);
 }
