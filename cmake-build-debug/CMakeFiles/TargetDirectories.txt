@@ -1,0 +1,4 @@
+F:/WorkSpace/Python-Assignment-2020/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+F:/WorkSpace/Python-Assignment-2020/cmake-build-debug/CMakeFiles/antlr4-cpp-runtime.dir
+F:/WorkSpace/Python-Assignment-2020/cmake-build-debug/CMakeFiles/python_interpreter.dir
+F:/WorkSpace/Python-Assignment-2020/cmake-build-debug/CMakeFiles/edit_cache.dir
