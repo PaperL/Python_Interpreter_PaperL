@@ -1,12 +1,11 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/python_interpreter.dir/generated/Python3BaseListener.cpp.obj"
-  "CMakeFiles/python_interpreter.dir/generated/Python3Lexer.cpp.obj"
-  "CMakeFiles/python_interpreter.dir/generated/Python3Listener.cpp.obj"
-  "CMakeFiles/python_interpreter.dir/generated/Python3Parser.cpp.obj"
-  "CMakeFiles/python_interpreter.dir/src/main.cpp.obj"
-  "libpython_interpreter.dll.a"
-  "python_interpreter.exe"
-  "python_interpreter.exe.manifest"
+  "CMakeFiles/python_interpreter.dir/generated/Python3BaseListener.cpp.o"
+  "CMakeFiles/python_interpreter.dir/generated/Python3Lexer.cpp.o"
+  "CMakeFiles/python_interpreter.dir/generated/Python3Listener.cpp.o"
+  "CMakeFiles/python_interpreter.dir/generated/Python3Parser.cpp.o"
+  "CMakeFiles/python_interpreter.dir/src/HighPrecision.cpp.o"
+  "CMakeFiles/python_interpreter.dir/src/main.cpp.o"
+  "python_interpreter"
   "python_interpreter.pdb"
 )
 

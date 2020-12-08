@@ -1,3 +1,1 @@
-"D:\CLion 2020.2.3\bin\cmake\win\bin\cmake.exe" -E rm -f CMakeFiles\python_interpreter.dir/objects.a
-D:\mingw64\bin\ar.exe cr CMakeFiles\python_interpreter.dir/objects.a @CMakeFiles\python_interpreter.dir\objects1.rsp
-D:\mingw64\bin\g++.exe    -g -g   -Wl,--whole-archive CMakeFiles\python_interpreter.dir/objects.a -Wl,--no-whole-archive  -o python_interpreter.exe -Wl,--out-implib,libpython_interpreter.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\python_interpreter.dir\linklibs.rsp
+/usr/bin/c++     -g -g   CMakeFiles/python_interpreter.dir/generated/Python3Lexer.cpp.o CMakeFiles/python_interpreter.dir/generated/Python3Parser.cpp.o CMakeFiles/python_interpreter.dir/generated/Python3Listener.cpp.o CMakeFiles/python_interpreter.dir/generated/Python3BaseListener.cpp.o CMakeFiles/python_interpreter.dir/src/HighPrecision.cpp.o CMakeFiles/python_interpreter.dir/src/main.cpp.o  -o python_interpreter  libantlr4-cpp-runtime.a 

@@ -1,4 +1,4 @@
-ToolSet: w64 6.0 (local)@D:\mingw64
+ToolSet: Ubuntu 20.04.1 LTS (local)@C:\Users\PaperL\AppData\Local\Microsoft\WindowsApps\ubuntu.exe
 Options: 
 
 Options:
