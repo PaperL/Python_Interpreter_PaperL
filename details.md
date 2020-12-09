@@ -153,7 +153,7 @@ We prove that the test files are correct, so the final two lines are not needed.
 
 You are suggested to use "is<T>()" before an "as<T>()". 
 
-However, during the OOP course, you will learn the constructing function and destruction function. You'd better to understand how the Any constructs and destructs, which will help you debug. You can read "./third_party/runtime/src/support/Any.h" and Any.cpp in the same path to understand it. This may be hard, so we suggest you ask teaching assistant JHY for help. 
+However, during the OOP course, you will learn the constructing function and destruction function. You'd better to understand how the Any constructs and destructs, which will help you basic_debug. You can read "./third_party/runtime/src/support/Any.h" and Any.cpp in the same path to understand it. This may be hard, so we suggest you ask teaching assistant JHY for help. 
 
 ##### Optional requirement: read the following context to know how antlrcpp::Any works: 
 

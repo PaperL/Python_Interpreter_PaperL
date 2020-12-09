@@ -13,7 +13,10 @@ set(src_dir
         ${PROJECT_SOURCE_DIR}/generated/Python3Parser.cpp
         ${PROJECT_SOURCE_DIR}/generated/Python3Listener.cpp
         ${PROJECT_SOURCE_DIR}/generated/Python3BaseListener.cpp
-        src/HighPrecision.cpp src/HighPrecision.h)
+        ${PROJECT_SOURCE_DIR}/src/Evalvisitor.cpp
+        ${PROJECT_SOURCE_DIR}/src/HighPrecision.cpp
+        ${PROJECT_SOURCE_DIR}/src/BasicVariable.cpp
+        )
 file(GLOB antlr4-cpp-src
         ${PROJECT_SOURCE_DIR}/third_party/runtime/src/*.cpp
         ${PROJECT_SOURCE_DIR}/third_party/runtime/src/atn/*.cpp
@@ -24,6 +27,6 @@ file(GLOB antlr4-cpp-src
         ${PROJECT_SOURCE_DIR}/third_party/runtime/src/tree/pattern/*.cpp
         ${PROJECT_SOURCE_DIR}/third_party/runtime/src/tree/xpath/*.cpp
         )
-add_library (antlr4-cpp-runtime ${antlr4-cpp-src})
+add_library(antlr4-cpp-runtime ${antlr4-cpp-src})
 add_executable(python_interpreter ${src_dir} src/main.cpp)
 target_link_libraries(python_interpreter antlr4-cpp-runtime)

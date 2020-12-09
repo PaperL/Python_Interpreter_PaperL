@@ -109,9 +109,22 @@ CMakeFiles/python_interpreter.dir/generated/Python3BaseListener.cpp.s: cmake_for
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/python_interpreter.dir/generated/Python3BaseListener.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/f/Workspace/Python_Interpreter_PaperL/generated/Python3BaseListener.cpp -o CMakeFiles/python_interpreter.dir/generated/Python3BaseListener.cpp.s
 
+CMakeFiles/python_interpreter.dir/src/Evalvisitor.cpp.o: CMakeFiles/python_interpreter.dir/flags.make
+CMakeFiles/python_interpreter.dir/src/Evalvisitor.cpp.o: ../src/Evalvisitor.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/f/Workspace/Python_Interpreter_PaperL/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/python_interpreter.dir/src/Evalvisitor.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/python_interpreter.dir/src/Evalvisitor.cpp.o -c /mnt/f/Workspace/Python_Interpreter_PaperL/src/Evalvisitor.cpp
+
+CMakeFiles/python_interpreter.dir/src/Evalvisitor.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/python_interpreter.dir/src/Evalvisitor.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /mnt/f/Workspace/Python_Interpreter_PaperL/src/Evalvisitor.cpp > CMakeFiles/python_interpreter.dir/src/Evalvisitor.cpp.i
+
+CMakeFiles/python_interpreter.dir/src/Evalvisitor.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/python_interpreter.dir/src/Evalvisitor.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/f/Workspace/Python_Interpreter_PaperL/src/Evalvisitor.cpp -o CMakeFiles/python_interpreter.dir/src/Evalvisitor.cpp.s
+
 CMakeFiles/python_interpreter.dir/src/HighPrecision.cpp.o: CMakeFiles/python_interpreter.dir/flags.make
 CMakeFiles/python_interpreter.dir/src/HighPrecision.cpp.o: ../src/HighPrecision.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/f/Workspace/Python_Interpreter_PaperL/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/python_interpreter.dir/src/HighPrecision.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/f/Workspace/Python_Interpreter_PaperL/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/python_interpreter.dir/src/HighPrecision.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/python_interpreter.dir/src/HighPrecision.cpp.o -c /mnt/f/Workspace/Python_Interpreter_PaperL/src/HighPrecision.cpp
 
 CMakeFiles/python_interpreter.dir/src/HighPrecision.cpp.i: cmake_force
@@ -122,9 +135,22 @@ CMakeFiles/python_interpreter.dir/src/HighPrecision.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/python_interpreter.dir/src/HighPrecision.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/f/Workspace/Python_Interpreter_PaperL/src/HighPrecision.cpp -o CMakeFiles/python_interpreter.dir/src/HighPrecision.cpp.s
 
+CMakeFiles/python_interpreter.dir/src/BasicVariable.cpp.o: CMakeFiles/python_interpreter.dir/flags.make
+CMakeFiles/python_interpreter.dir/src/BasicVariable.cpp.o: ../src/BasicVariable.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/f/Workspace/Python_Interpreter_PaperL/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/python_interpreter.dir/src/BasicVariable.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/python_interpreter.dir/src/BasicVariable.cpp.o -c /mnt/f/Workspace/Python_Interpreter_PaperL/src/BasicVariable.cpp
+
+CMakeFiles/python_interpreter.dir/src/BasicVariable.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/python_interpreter.dir/src/BasicVariable.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /mnt/f/Workspace/Python_Interpreter_PaperL/src/BasicVariable.cpp > CMakeFiles/python_interpreter.dir/src/BasicVariable.cpp.i
+
+CMakeFiles/python_interpreter.dir/src/BasicVariable.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/python_interpreter.dir/src/BasicVariable.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/f/Workspace/Python_Interpreter_PaperL/src/BasicVariable.cpp -o CMakeFiles/python_interpreter.dir/src/BasicVariable.cpp.s
+
 CMakeFiles/python_interpreter.dir/src/main.cpp.o: CMakeFiles/python_interpreter.dir/flags.make
 CMakeFiles/python_interpreter.dir/src/main.cpp.o: ../src/main.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/f/Workspace/Python_Interpreter_PaperL/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/python_interpreter.dir/src/main.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/f/Workspace/Python_Interpreter_PaperL/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/python_interpreter.dir/src/main.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/python_interpreter.dir/src/main.cpp.o -c /mnt/f/Workspace/Python_Interpreter_PaperL/src/main.cpp
 
 CMakeFiles/python_interpreter.dir/src/main.cpp.i: cmake_force
@@ -141,7 +167,9 @@ python_interpreter_OBJECTS = \
 "CMakeFiles/python_interpreter.dir/generated/Python3Parser.cpp.o" \
 "CMakeFiles/python_interpreter.dir/generated/Python3Listener.cpp.o" \
 "CMakeFiles/python_interpreter.dir/generated/Python3BaseListener.cpp.o" \
+"CMakeFiles/python_interpreter.dir/src/Evalvisitor.cpp.o" \
 "CMakeFiles/python_interpreter.dir/src/HighPrecision.cpp.o" \
+"CMakeFiles/python_interpreter.dir/src/BasicVariable.cpp.o" \
 "CMakeFiles/python_interpreter.dir/src/main.cpp.o"
 
 # External object files for target python_interpreter
@@ -151,12 +179,14 @@ python_interpreter: CMakeFiles/python_interpreter.dir/generated/Python3Lexer.cpp
 python_interpreter: CMakeFiles/python_interpreter.dir/generated/Python3Parser.cpp.o
 python_interpreter: CMakeFiles/python_interpreter.dir/generated/Python3Listener.cpp.o
 python_interpreter: CMakeFiles/python_interpreter.dir/generated/Python3BaseListener.cpp.o
+python_interpreter: CMakeFiles/python_interpreter.dir/src/Evalvisitor.cpp.o
 python_interpreter: CMakeFiles/python_interpreter.dir/src/HighPrecision.cpp.o
+python_interpreter: CMakeFiles/python_interpreter.dir/src/BasicVariable.cpp.o
 python_interpreter: CMakeFiles/python_interpreter.dir/src/main.cpp.o
 python_interpreter: CMakeFiles/python_interpreter.dir/build.make
 python_interpreter: libantlr4-cpp-runtime.a
 python_interpreter: CMakeFiles/python_interpreter.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/mnt/f/Workspace/Python_Interpreter_PaperL/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking CXX executable python_interpreter"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/mnt/f/Workspace/Python_Interpreter_PaperL/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Linking CXX executable python_interpreter"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/python_interpreter.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

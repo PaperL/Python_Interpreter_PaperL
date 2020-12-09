@@ -1,0 +1,14 @@
+//
+// Created by PaperL on 2020/12/10.
+//
+
+#ifndef PYTHON_INTERPRETER_BASICVARIABLE_H
+#define PYTHON_INTERPRETER_BASICVARIABLE_H
+
+
+class BasicVariable {
+
+};
+
+
+#endif //PYTHON_INTERPRETER_BASICVARIABLE_H
