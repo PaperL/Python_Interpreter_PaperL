@@ -94,6 +94,22 @@ bool HighPrecision::digitLess(const HighPrecision &x, const HighPrecision &y) co
     return false;
 }
 
+void HighPrecision::print() const {
+
+#ifdef warning
+    if (sign != 0 && sign != 1)
+        printf("WARNING: sign!=0 or 1 !\n");
+    if (num.size() == 0)
+        printf("WARNING: size==0!\n");
+    if (sign == 0 && num.size() == 1 && num[0] == 0)
+        printf("WARNING: negative zero!\n");
+#endif
+
+    if (sign == 0)putchar('-');
+    for (int i = num.size() - 1; i >= 0; --i)
+        putchar(num[i] + 48);
+}
+
 HighPrecision::HighPrecision(int k) : sign((k < 0) ? 0 : 1) {
     if (k == 0)
         num.emplace_back(0);
@@ -130,22 +146,6 @@ HighPrecision::HighPrecision(const HighPrecision &arg, char negativeFlag, int bi
                 num[bitwiseMove + i] = arg.num[i];
         }
     }
-}
-
-void HighPrecision::print() const {
-
-#ifdef warning
-    if(sign!=0 && sign!=1)
-        printf("WARNING: sign!=0 or 1 !\n");
-    if(num.size()==0)
-        printf("WARNING: size==0!\n");
-    if(sign==0 && num.size()==1 && num[0]==0)
-        printf("WARNING: negative zero!\n");
-#endif
-
-    if (sign == 0)putchar('-');
-    for (int i = num.size() - 1; i >= 0; --i)
-        putchar(num[i] + 48);
 }
 
 std::istream &operator>>(std::istream &in, HighPrecision &arg) {

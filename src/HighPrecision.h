@@ -49,6 +49,8 @@ private:
 
     bool digitLess(const HighPrecision &x, const HighPrecision &y) const;
 
+    void print() const;
+
 public:
 
     HighPrecision(int k = 0);
@@ -57,8 +59,6 @@ public:
 
     HighPrecision(const HighPrecision &arg, char negativeFlag = 0, int bitwiseMove = 0);
 
-
-    void print() const;
 
     friend std::istream &operator>>(std::istream &in, HighPrecision &arg);
 
