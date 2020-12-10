@@ -1,4 +1,0 @@
-/mnt/f/Workspace/Python_Interpreter_PaperL/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/mnt/f/Workspace/Python_Interpreter_PaperL/cmake-build-debug/CMakeFiles/edit_cache.dir
-/mnt/f/Workspace/Python_Interpreter_PaperL/cmake-build-debug/CMakeFiles/python_interpreter.dir
-/mnt/f/Workspace/Python_Interpreter_PaperL/cmake-build-debug/CMakeFiles/antlr4-cpp-runtime.dir

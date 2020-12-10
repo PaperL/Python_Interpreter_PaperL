@@ -1,4 +1,0 @@
-/usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /mnt/f/Workspace/Python_Interpreter_PaperL
--- Configuring done
--- Generating done
--- Build files have been written to: /mnt/f/Workspace/Python_Interpreter_PaperL/cmake-build-debug
