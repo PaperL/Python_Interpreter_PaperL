@@ -1,3 +1,2 @@
-/cmake-build-basic_debug/*
-!/cmake-build-basic_debug/CMakeFiles
+/cmake-build-*
 /.idea
