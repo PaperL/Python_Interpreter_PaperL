@@ -366,7 +366,7 @@ HighPrecision HighPrecision::operator/(const HighPrecision &arg) const {
         HighPrecision tempMulti(arg, 1 - arg.sign, i);
         j = 0;
         for (j = 1; j <= 9; ++j) {
-            tempNum = tempMulti * j;
+            tempNum = tempMulti * j;//todo 此处乘法改成加法可以优化常数
             if (tempNum > myself) {
                 --j;
                 break;
@@ -387,7 +387,7 @@ HighPrecision HighPrecision::operator/(const HighPrecision &arg) const {
 }
 
 HighPrecision HighPrecision::operator%(const HighPrecision &arg) const {
-    if (arg == highPrecisionZero || (*this) == highPrecisionZero)
+    if (arg == highPrecisionZero || (*this) == highPrecisionZero)//todo 此处常数可优化
         return highPrecisionZero;
     if (digitLess((*this), arg))return (*this);
 
@@ -411,4 +411,15 @@ HighPrecision HighPrecision::operator%(const HighPrecision &arg) const {
     if (this->sign == 1 || myself == highPrecisionZero)
         return myself;
     else return (-myself);
+}
+
+bool HighPrecision::isZero() const {
+    if (num.size() == 1 && num[0] == 0)
+        return true;
+    return false;
+}
+
+void HighPrecision::setNegative() {
+    if (!(num.size() == 1 && num[0] == 0))
+        sign = 1 - sign;
 }

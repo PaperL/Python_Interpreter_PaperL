@@ -2,8 +2,11 @@
 #define PYTHON_INTERPRETER_EVALVISITOR_H
 
 
+#include <string>//stod
+
 #include "Python3BaseVisitor.h"
 #include "BasicVariable.h"
+#include "pyNamespace.h"
 
 #define basic_debug
 

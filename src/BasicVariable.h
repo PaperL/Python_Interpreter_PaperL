@@ -20,6 +20,7 @@ private:
     enum BasicDataType {
         pyNone, pyBoolean, pyInteger, pyFloatingPoint, pyString
     } dataType;
+
     bool declared;
 
     bool valBoolean;
@@ -27,29 +28,37 @@ private:
     double *valFloatingPoint;
     std::string *valString;
 
-    void strGet(const std::string &arg);
+    /*void strGet(const std::string &arg);
 
     std::string strShow();
 
-    void print() const;//todo get,show,print函数应该是private还是public?
+    void print() const;*///todo get,show,print函数应该是private还是public?
 
 public:
-    template<class T>
-    BasicVariable(BasicDataType type = pyNone, T &context = nullptr);
+
+    BasicVariable();
 
     BasicVariable(const BasicVariable &arg, ConstructorType type = nullSetting);
 
+    explicit BasicVariable(const bool &arg);
+
+    explicit BasicVariable(const HighPrecision &arg);
+
+    explicit BasicVariable(const double &arg);
+
+    explicit BasicVariable(const std::string &arg);
+
     ~BasicVariable();
 
-    friend std::istream &operator>>(std::istream &in, HighPrecision &arg);
 
-    friend std::ostream &operator<<(std::ostream &out, const HighPrecision &arg);
+    //friend std::istream &operator>>(std::istream &in, BasicVariable &arg);
+
+    friend std::ostream &operator<<(std::ostream &out, const BasicVariable &arg);
 
 
     BasicVariable &operator=(const BasicVariable &arg);
 
-
-    BasicVariable &operator[](BasicVariable &arg) const;
+    char operator[](const int &index) const;
 
 
     BasicVariable operator!() const;
@@ -85,6 +94,26 @@ public:
 
     BasicVariable operator%(const BasicVariable &arg) const;
 
+    BasicVariable operator+=(const BasicVariable &arg) const;
+
+    BasicVariable operator-=(const BasicVariable &arg) const;
+
+    BasicVariable operator*=(const BasicVariable &arg) const;
+
+    BasicVariable operator/=(const BasicVariable &arg) const;
+
+    BasicVariable operator%=(const BasicVariable &arg) const;
+
+
+    void toNone();
+
+    void toBool();
+
+    void toInt();
+
+    void toDouble();
+
+    void toStr();
 };
 
 

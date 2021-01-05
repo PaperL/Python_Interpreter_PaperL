@@ -1,5 +1,7 @@
 #include "Evalvisitor.h"
 
+pyNamespace Namespace;
+
 antlrcpp::Any EvalVisitor::visitFile_input(Python3Parser::File_inputContext *ctx) {
 #ifdef basic_debug
     printf("visitFile_input\n");
@@ -45,7 +47,7 @@ antlrcpp::Any EvalVisitor::visitStmt(Python3Parser::StmtContext *ctx) {
     printf("visitStmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    return ((ctx -> simple_stmt() == nullptr) ? visitCompound_stmt(ctx -> compound_stmt()) : visitSimple_stmt(ctx -> simple_stmt()));
 }
 
 antlrcpp::Any EvalVisitor::visitSimple_stmt(Python3Parser::Simple_stmtContext *ctx) {
@@ -53,7 +55,7 @@ antlrcpp::Any EvalVisitor::visitSimple_stmt(Python3Parser::Simple_stmtContext *c
     printf("visitSimple_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    return visitSmall_stmt(ctx -> small_stmt());
 }
 
 antlrcpp::Any EvalVisitor::visitSmall_stmt(Python3Parser::Small_stmtContext *ctx) {
@@ -61,7 +63,7 @@ antlrcpp::Any EvalVisitor::visitSmall_stmt(Python3Parser::Small_stmtContext *ctx
     printf("visitSmall_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    return ((ctx -> expr_stmt() == nullptr) ? visitFlow_stmt(ctx -> flow_stmt()) : visitExpr_stmt(ctx -> expr_stmt()));
 }
 
 antlrcpp::Any EvalVisitor::visitExpr_stmt(Python3Parser::Expr_stmtContext *ctx) {
@@ -69,6 +71,8 @@ antlrcpp::Any EvalVisitor::visitExpr_stmt(Python3Parser::Expr_stmtContext *ctx) 
     printf("visitExpr_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
+    //todo @@@@@@@@
+    visitTestlist(ctx->testlist().back()).as<
     return visitChildren(ctx);
 }
 
@@ -253,8 +257,22 @@ antlrcpp::Any EvalVisitor::visitAtom(Python3Parser::AtomContext *ctx) {
     printf("visitAtom\n");
     std::cout << ctx->getText() << std::endl;
 #endif
+    if (ctx->NAME()) {
 
-    return visitChildren(ctx);
+        //todo @@@返回变量对应的内容
+    } else if (ctx->NUMBER()) {
+        if (ctx->getText().find('.') == std::string::npos)
+            return BasicVariable(HighPrecision(ctx->getText()));
+        else
+            return BasicVariable(stod(ctx->getText()));//todo 此处可能抛出异常
+    } else if (!ctx->STRING().empty()) {
+        BasicVariable temps("");
+        for (auto i : ctx->STRING())
+            temps += BasicVariable(i->getText().substr(1, i->getText().length() - 2));//字符串首末有双引号
+        return temps;
+    } else if (ctx->test()) {
+        return visitTest(ctx->test());
+    } else return BasicVariable();
 }
 
 antlrcpp::Any EvalVisitor::visitTestlist(Python3Parser::TestlistContext *ctx) {

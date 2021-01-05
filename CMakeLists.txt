@@ -16,7 +16,7 @@ set(src_dir
         ${PROJECT_SOURCE_DIR}/src/Evalvisitor.cpp
         ${PROJECT_SOURCE_DIR}/src/HighPrecision.cpp
         ${PROJECT_SOURCE_DIR}/src/BasicVariable.cpp
-        )
+        ${PROJECT_SOURCE_DIR}/src/pyNamespace.cpp)
 file(GLOB antlr4-cpp-src
         ${PROJECT_SOURCE_DIR}/third_party/runtime/src/*.cpp
         ${PROJECT_SOURCE_DIR}/third_party/runtime/src/atn/*.cpp

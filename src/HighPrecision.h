@@ -100,6 +100,10 @@ public:
 
     HighPrecision operator%(const HighPrecision &arg) const;
 
+
+    bool isZero()const;
+
+    void setNegative();
 };
 
 
