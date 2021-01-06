@@ -208,6 +208,8 @@ bool HighPrecision::operator>=(const HighPrecision &arg) const { return !((*this
 HighPrecision HighPrecision::operator-() const { return HighPrecision(*this, 1); }
 
 HighPrecision HighPrecision::operator+(const HighPrecision &arg) const {//todo 注意空值情况
+    if(arg.isZero())
+        return (*this);
     if (this->sign == arg.sign) {
         HighPrecision tempBigInt;
         tempBigInt.sign = this->sign;
@@ -254,6 +256,8 @@ HighPrecision HighPrecision::operator+(const HighPrecision &arg) const {//todo �
 }
 
 HighPrecision HighPrecision::operator-(const HighPrecision &arg) const {
+    if(arg.isZero())
+        return (*this);
     if (this->sign == arg.sign) {
         if (digitLess(*this, arg))
             return (-(arg - (*this)));
@@ -282,7 +286,7 @@ HighPrecision HighPrecision::operator-(const HighPrecision &arg) const {
 }
 
 HighPrecision HighPrecision::operator*(const HighPrecision &arg) const {
-    if ((*this) == highPrecisionZero || arg == highPrecisionZero)
+    if (this->isZero() || arg.isZero())
         return highPrecisionZero;
 
     HighPrecision ans;
@@ -351,7 +355,9 @@ HighPrecision HighPrecision::operator>>(const int arg) const {
 }
 
 HighPrecision HighPrecision::operator/(const HighPrecision &arg) const {
-    if (arg == highPrecisionZero || (*this) == highPrecisionZero)
+    if(arg.isZero())
+        throw pyException("Divide Zero");
+    if (this->isZero())
         return highPrecisionZero;
     if (digitLess((*this), arg))return highPrecisionZero;
     HighPrecision ans;
@@ -387,7 +393,9 @@ HighPrecision HighPrecision::operator/(const HighPrecision &arg) const {
 }
 
 HighPrecision HighPrecision::operator%(const HighPrecision &arg) const {
-    if (arg == highPrecisionZero || (*this) == highPrecisionZero)//todo 此处常数可优化
+    if(arg.isZero())
+        throw pyException("Divide Zero");
+    if (this->isZero())
         return highPrecisionZero;
     if (digitLess((*this), arg))return (*this);
 
@@ -408,7 +416,7 @@ HighPrecision HighPrecision::operator%(const HighPrecision &arg) const {
         if (j != 0)
             myself = myself - tempMulti * j;
     }
-    if (this->sign == 1 || myself == highPrecisionZero)
+    if (this->sign == 1 || myself.isZero())
         return myself;
     else return (-myself);
 }

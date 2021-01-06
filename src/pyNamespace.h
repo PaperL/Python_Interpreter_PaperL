@@ -10,6 +10,7 @@
 
 #include "Python3BaseVisitor.h"
 #include "BasicVariable.h"
+#include "robust.h"
 
 typedef std::map<std::string, BasicVariable> variableMap;
 typedef std::map<std::string, Python3Parser::FuncdefContext *> functionMap;
@@ -17,18 +18,21 @@ typedef std::stack<variableMap> variableStack;
 
 class pyNamespace {
 private:
-    functionMap stdFunction;
+    //functionMap stdFunction;
     functionMap userFunction;
     variableMap globalVariable;
     variableStack localVariableStack;
 public:
     pyNamespace();//设定stdFunction
 
-    BasicVariable getVariable(const std::string &name);
 
-    void assignVariable(const std::string &name, const BasicVariable &arg, bool autoDeclare = false);
+    BasicVariable getVariable(const std::string &name, int declareType = 0);
+    //declareType = 0 for not declare, 1 for global, 2 for local
 
-    void defineFunction(const std::string &name, const Python3Parser::FuncdefContext *const arg);
+    void assignVariable(const std::string &name, const BasicVariable &arg);//赋值
+
+
+    void defineFunction(const std::string &name, Python3Parser::FuncdefContext *arg);
 
     Python3Parser::FuncdefContext *getFunction(const std::string &name);
 };

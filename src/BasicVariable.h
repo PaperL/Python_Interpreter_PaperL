@@ -9,19 +9,22 @@
 #include <string>
 
 #include "HighPrecision.h"
+#include "robust.h"
 
 class BasicVariable {
-private:
-
+public:
     enum ConstructorType {
-        nullSetting, setNegation, setNegative
+        setDefault, setNone, setNegation, setNegative, setName
     };
 
     enum BasicDataType {
-        pyNone, pyBoolean, pyInteger, pyFloatingPoint, pyString
-    } dataType;
+        pyNull, pyName, pyNone, pyBoolean, pyInteger, pyFloatingPoint, pyString
+    };
 
-    bool declared;
+private:
+    BasicDataType dataType;
+
+    std::string *name;
 
     bool valBoolean;
     HighPrecision *valInteger;
@@ -36,9 +39,9 @@ private:
 
 public:
 
-    BasicVariable();
+    BasicVariable(ConstructorType type = setDefault);
 
-    BasicVariable(const BasicVariable &arg, ConstructorType type = nullSetting);
+    BasicVariable(const BasicVariable &arg, ConstructorType type = setDefault);
 
     explicit BasicVariable(const bool &arg);
 
@@ -46,9 +49,14 @@ public:
 
     explicit BasicVariable(const double &arg);
 
-    explicit BasicVariable(const std::string &arg);
+    explicit BasicVariable(const std::string &arg, ConstructorType type = setDefault);
 
     ~BasicVariable();
+
+
+    BasicDataType getType();
+
+    std::string &getName();
 
 
     //friend std::istream &operator>>(std::istream &in, BasicVariable &arg);

@@ -12,6 +12,8 @@
 #include <vector>
 #include <cmath>//FFT sin/cos
 
+#include "robust.h"
+
 class FFT {
 private:
     class complex {

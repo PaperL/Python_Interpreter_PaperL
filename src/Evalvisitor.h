@@ -7,8 +7,7 @@
 #include "Python3BaseVisitor.h"
 #include "BasicVariable.h"
 #include "pyNamespace.h"
-
-#define basic_debug
+#include "robust.h"
 
 class EvalVisitor : public Python3BaseVisitor {
 
