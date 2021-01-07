@@ -95,10 +95,23 @@ antlrcpp::Any EvalVisitor::visitExpr_stmt(Python3Parser::Expr_stmtContext *ctx) 
     //return visitChildren(ctx);*/
     //todo 不知道怎么提前判断左值
     // 可以考虑 BasicVaribal 加一 flag 用于保护 pyName 不被转为实值
-    std::vector<std::vector<BasicVariable> > testlistVector;
-    testlistVector.emplace_back(visitTestlist(ctx->testlist(0)).as<std::vector<BasicVariable>>());
-    if (ctx->augassign()) {
 
+    std::vector<std::vector<BasicVariable> > testlistVector;
+    for (auto i:ctx->testlist())
+        testlistVector.emplace_back(visitTestlist(i).as<std::vector<BasicVariable>>());
+
+    if (ctx->augassign()) {
+        if (testlistVector.size() != 2)
+            throw pyException("Unexpected Error in visitExpr_stmt()");
+        auto &leftTestlist = testlistVector.front(), &rightTestlist = testlistVector.back();
+        if (leftTestlist.size() != rightTestlist.size())
+            throw pyException("Different Number of Values on Two Sides of Expression Statement");
+        if (ctx->augassign()->ADD_ASSIGN()) {
+            for (int i = 0; i < leftTestlist.size(); ++i) {
+                Namespace.assignVariable(leftTestlist[i].getName(),
+                                         Namespace.getValue(leftTestlist[i]) + Namespace.getValue(rightTestlist[i]));
+            }
+        }
     } else {
         for (auto i:ctx->ASSIGN())
             std::cout << "<>" << i->getText() << std::endl;
@@ -390,18 +403,19 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
     printf("visitAtom_expr\n");
     std::cout << ctx->getText() << std::endl;
 #endif
+    std::cout << "chese0" << std::endl;
     if (!ctx->trailer()) return visitAtom(ctx->atom());
         //非函数则直接返回Atom（BasicVariable），可以是pyName类型的BasicVariable
     else {
         std::cout << "chese1" << std::endl;
-        BasicVariable atom = visitAtom(ctx->atom()).as<BasicVariable>();
+        const auto tempAtom(visitAtom(ctx->atom()).as<BasicVariable>());
         std::cout << "chese2" << std::endl;
         std::vector<std::pair<BasicVariable, BasicVariable> > arglist_vector = visitTrailer(ctx->trailer());
         std::cout << "chese3" << std::endl;
-        //if (atom.getType() != BasicVariable::pyName)
+        //if (tempAtom.getType() != BasicVariable::pyName)
         //    throw pyException("Atom for Function Name is not pyName Type BasicVariable");
 
-        if (atom.getName() == "print") {
+        if (tempAtom.getName() == "print") {
             std::cout << "chese4" << std::endl;
             if (!arglist_vector.empty()) {
                 std::cout << "chese5" << std::endl;
@@ -413,7 +427,7 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
             } else std::cout << std::endl;
             return BasicVariable();
 
-        } else if (atom.getName() == "bool") {
+        } else if (tempAtom.getName() == "bool") {
             if (arglist_vector.empty())
                 return BasicVariable(false);
             else if (arglist_vector.size() == 1) {
@@ -421,7 +435,7 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
                 return temp.toBool();
             } else throw pyException("bool() Get more than 1 Argument");
 
-        } else if (atom.getName() == "int") {
+        } else if (tempAtom.getName() == "int") {
             if (arglist_vector.empty())
                 return BasicVariable(HighPrecision(0));
             else if (arglist_vector.size() == 1) {
@@ -430,7 +444,7 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
             } else throw pyException("int() Get more than 1 Argument");
             //事实上int("101",2);代表将字符串转为二进制的值
 
-        } else if (atom.getName() == "float") {
+        } else if (tempAtom.getName() == "float") {
             if (arglist_vector.empty())
                 return BasicVariable(0.0);
             else if (arglist_vector.size() == 1) {
@@ -438,7 +452,7 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
                 return temp.toFloat();
             } else throw pyException("float() Get more than 1 Argument");
 
-        } else if (atom.getName() == "str") {
+        } else if (tempAtom.getName() == "str") {
             if (arglist_vector.empty())
                 return BasicVariable("");
             else if (arglist_vector.size() == 1) {
@@ -448,7 +462,7 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
 
 
         } else {
-            Namespace.getFunction(atom.getName());
+            Namespace.getFunction(tempAtom.getName());
             /*
             if (ctx->trailer()->arglist() != nullptr) {
                 bool positionalArgument = true;
@@ -495,9 +509,14 @@ antlrcpp::Any EvalVisitor::visitAtom(Python3Parser::AtomContext *ctx) {
     printf("visitAtom\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    if (ctx->NAME())
-        return BasicVariable(ctx->NAME()->getText(), BasicVariable::setName);
-    else if (ctx->NUMBER()) {
+    std::cout << "a1" << std::endl;
+    if (ctx->NAME()) {
+        std::cout << "a2" << std::endl;
+        BasicVariable temp(ctx->NAME()->getText(), BasicVariable::setName);
+        std::cout << "a3" << std::endl;
+        return temp;
+        //return BasicVariable(ctx->NAME()->getText(), BasicVariable::setName);
+    } else if (ctx->NUMBER()) {
         if (ctx->NUMBER()->getText().find('.') == std::string::npos)//保存getText()优化
             return BasicVariable(HighPrecision(ctx->getText()));
         else return BasicVariable(stod(ctx->NUMBER()->getText()));//todo 此处stod

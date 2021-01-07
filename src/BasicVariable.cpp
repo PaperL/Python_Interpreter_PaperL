@@ -32,6 +32,7 @@ BasicVariable::BasicVariable(const BasicVariable &arg, ConstructorType type) : d
                                                                                valInteger(arg.valInteger),
                                                                                valFloatingPoint(arg.valFloatingPoint),
                                                                                valString(arg.valString) {
+    std::cout << "cc" << std::endl;
     if (type == setNegation) {
         if (dataType == pyBoolean)
             valBoolean = !valBoolean;
@@ -49,6 +50,7 @@ BasicVariable::BasicVariable(const BasicVariable &arg, ConstructorType type) : d
                 *valFloatingPoint = -(*valFloatingPoint);
         }
     }
+    std::cout << "cc2" << std::endl;
 }
 
 BasicVariable::BasicVariable(const bool &arg) : BasicVariable() {
@@ -159,7 +161,7 @@ std::ostream &operator<<(std::ostream &out, const BasicVariable &arg) {
 }
 
 BasicVariable &BasicVariable::operator=(const BasicVariable &arg) {
-    if (this == &arg)return *this;
+    if (this == &arg)return (*this);
     if (dataType == pyName)
         delete name;
     else if (dataType == pyInteger)
@@ -168,6 +170,7 @@ BasicVariable &BasicVariable::operator=(const BasicVariable &arg) {
         delete valFloatingPoint;
     else if (dataType == pyString)
         delete valString;
+
     dataType = arg.dataType;
     if (dataType == pyName)
         name = new std::string(*arg.name);
@@ -452,4 +455,4 @@ BasicVariable &BasicVariable::toStr() {
     return (*this);
 }
 
-bool BasicVariable::isNull() { return dataType == pyNull; }
+bool BasicVariable::isNull() const { return (dataType == pyNull); }

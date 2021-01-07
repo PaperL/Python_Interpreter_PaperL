@@ -15,7 +15,7 @@
 class BasicVariable {
 public:
     enum ConstructorType {
-        setDefault, setNone, setNegation, setPositive,setNegative, setName
+        setDefault, setNone, setNegation, setPositive, setNegative, setName
     };
 
     enum BasicDataType {
@@ -135,7 +135,7 @@ public:
     BasicVariable &toStr();
 
 
-    bool isNull();
+    bool isNull() const;
 };
 
 
