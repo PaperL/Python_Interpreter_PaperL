@@ -67,6 +67,7 @@ BasicVariable::BasicVariable(const double &arg) : BasicVariable() {
 }
 
 BasicVariable::BasicVariable(const std::string &arg, ConstructorType type) : BasicVariable() {
+    std::cout << "b chese1" << std::endl;
     if (type == setDefault) {
         dataType = pyString;
         valString = new std::string(arg);
@@ -74,17 +75,26 @@ BasicVariable::BasicVariable(const std::string &arg, ConstructorType type) : Bas
         dataType = pyName;
         name = new std::string(arg);
     }
+    std::cout << "b chese2" << std::endl;
 }
 
 BasicVariable::~BasicVariable() {
-    if (dataType == pyName)
+    //出于不明原因被两次调用，故需保护
+    std::cout << "b chese3" << std::endl;
+    if (dataType == pyName && name != nullptr) {
         delete name;
-    else if (dataType == pyInteger)
+        name = nullptr;
+    } else if (dataType == pyInteger && valInteger != nullptr) {
         delete valInteger;
-    else if (dataType == pyFloatingPoint)
+        valInteger = nullptr;
+    } else if (dataType == pyFloatingPoint && valFloatingPoint != nullptr) {
         delete valFloatingPoint;
-    else if (dataType == pyString)
+        valFloatingPoint = nullptr;
+    } else if (dataType == pyString && valString != nullptr) {
         delete valString;
+        valString = nullptr;
+    }
+    std::cout << "b chese4" << std::endl;
 }
 
 BasicVariable::BasicDataType BasicVariable::getType() const { return dataType; }

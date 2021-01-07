@@ -47,8 +47,8 @@ antlrcpp::Any EvalVisitor::visitStmt(Python3Parser::StmtContext *ctx) {
     printf("visitStmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return ((ctx->simple_stmt() == nullptr) ? visitCompound_stmt(ctx->compound_stmt()) : visitSimple_stmt(
-            ctx->simple_stmt()));
+    return (ctx->compound_stmt() ?
+            visitCompound_stmt(ctx->compound_stmt()) : visitSimple_stmt(ctx->simple_stmt()));
 }
 
 antlrcpp::Any EvalVisitor::visitSimple_stmt(Python3Parser::Simple_stmtContext *ctx) {
@@ -73,9 +73,37 @@ antlrcpp::Any EvalVisitor::visitExpr_stmt(Python3Parser::Expr_stmtContext *ctx) 
     printf("visitExpr_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    //todo @@@@@@@@
-    visitTestlist(ctx->testlist().back()).as<
-    return visitChildren(ctx);
+    //pyName会自atom直接至本函数
+    /*if(ctx->augassign()){//e.g. += /=
+
+    }else if(ctx->ASSIGN().front().)
+    antlrcpp::Any tempPtr = ctx->testlist()
+    antlrcpp::Any tempPtr = ctx->or_test();
+    //antlrcpp::Any tempPtr = ctx->or_test()->and_test(0)->not_test(0)->comparison();
+    if (tempPtr.isNotNull()) {
+        tempPtr = tempPtr.as<Python3Parser::ComparisonContext *>()
+                ->arith_expr(0)->term(0)->factor(0)->atom_expr();
+        if(tempPtr.isNotNull()){
+            tempPtr = tempPtr.as<Python3Parser::Atom_exprContext*>()
+                    ->atom();
+        }
+    }
+    if ()
+    visitTestlist(ctx->testlist().front().);
+
+    //visitTestlist(ctx->testlist().back()).as<
+    //return visitChildren(ctx);*/
+    //todo 不知道怎么提前判断左值
+    // 可以考虑 BasicVaribal 加一 flag 用于保护 pyName 不被转为实值
+    std::vector<std::vector<BasicVariable> > testlistVector;
+    testlistVector.emplace_back(visitTestlist(ctx->testlist(0)).as<std::vector<BasicVariable>>());
+    if (ctx->augassign()) {
+
+    } else {
+        for (auto i:ctx->ASSIGN())
+            std::cout << "<>" << i->getText() << std::endl;
+    }
+    return nullptr;
 }
 
 antlrcpp::Any EvalVisitor::visitAugassign(Python3Parser::AugassignContext *ctx) {
@@ -305,7 +333,9 @@ antlrcpp::Any EvalVisitor::visitTerm(Python3Parser::TermContext *ctx) {
     auto muldivmod_op = ctx->muldivmod_op();
     if (factor_vector.size() == 1)
         return visitFactor(factor_vector.front());
-    else if (factor_vector.size() > 1) {//e.g. a*b/c 从前往后(左结合)依次遍历符号
+    else if (factor_vector.size() > 1) {
+        //e.g. a*b/c 从前往后(左结合)依次遍历符号
+        //并将pyName转为实值
         BasicVariable leftValue = visitFactor(factor_vector.front()).as<BasicVariable>();
         BasicVariable rightValue;
         std::string sign;
@@ -363,36 +393,63 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
     if (!ctx->trailer()) return visitAtom(ctx->atom());
         //非函数则直接返回Atom（BasicVariable），可以是pyName类型的BasicVariable
     else {
-        BasicVariable atom = visitAtom(ctx->atom());
+        std::cout << "chese1" << std::endl;
+        BasicVariable atom = visitAtom(ctx->atom()).as<BasicVariable>();
+        std::cout << "chese2" << std::endl;
         std::vector<std::pair<BasicVariable, BasicVariable> > arglist_vector = visitTrailer(ctx->trailer());
+        std::cout << "chese3" << std::endl;
         //if (atom.getType() != BasicVariable::pyName)
         //    throw pyException("Atom for Function Name is not pyName Type BasicVariable");
 
         if (atom.getName() == "print") {
+            std::cout << "chese4" << std::endl;
             if (!arglist_vector.empty()) {
+                std::cout << "chese5" << std::endl;
                 for (auto i = arglist_vector.begin(); i != arglist_vector.end() - 1; ++i)
                     if (i->first.isNull()) {
-                        std::cout << Namespace.getVariable(i->second.getName()) << ' ';
+                        std::cout << Namespace.getValue(i->second) << ' ';
                     } else throw pyException("Call print() with Keyword Argument");
-                std::cout << Namespace.getVariable(arglist_vector.back().second.getName()) << std::endl;
+                std::cout << Namespace.getValue(arglist_vector.back().second) << std::endl;
             } else std::cout << std::endl;
             return BasicVariable();
+
         } else if (atom.getName() == "bool") {
-            if(arglist_vector.empty())
+            if (arglist_vector.empty())
                 return BasicVariable(false);
-            else if(arglist_vector.size()==1){
-                BasicVariable temp(arglist_vector.front().second);
+            else if (arglist_vector.size() == 1) {
+                BasicVariable temp(Namespace.getValue(arglist_vector.front().second));
                 return temp.toBool();
-            }else throw pyException("bool() Get more than 1 Argument");
+            } else throw pyException("bool() Get more than 1 Argument");
+
         } else if (atom.getName() == "int") {
+            if (arglist_vector.empty())
+                return BasicVariable(HighPrecision(0));
+            else if (arglist_vector.size() == 1) {
+                BasicVariable temp(Namespace.getValue(arglist_vector.front().second));
+                return temp.toInt();
+            } else throw pyException("int() Get more than 1 Argument");
+            //事实上int("101",2);代表将字符串转为二进制的值
 
         } else if (atom.getName() == "float") {
+            if (arglist_vector.empty())
+                return BasicVariable(0.0);
+            else if (arglist_vector.size() == 1) {
+                BasicVariable temp(Namespace.getValue(arglist_vector.front().second));
+                return temp.toFloat();
+            } else throw pyException("float() Get more than 1 Argument");
 
         } else if (atom.getName() == "str") {
+            if (arglist_vector.empty())
+                return BasicVariable("");
+            else if (arglist_vector.size() == 1) {
+                BasicVariable temp(Namespace.getValue(arglist_vector.front().second));
+                return temp.toStr();
+            } else throw pyException("str() Get more than 1 Argument");
+
 
         } else {
             Namespace.getFunction(atom.getName());
-
+            /*
             if (ctx->trailer()->arglist() != nullptr) {
                 bool positionalArgument = true;
                 //positional arg,即为c++函数参数表中内容,不可出现在keyword arg后
@@ -414,11 +471,10 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
                     std::vector<dtype> tmp = tret.as<std::vector<dtype> >();
                     for (auto x : tmp) ret.push_back(x);
                 }
-            }
-            return new BasicVariable();
+            }*/
+            return BasicVariable();
         }
     }
-    return visitChildren(ctx);
 }
 
 antlrcpp::Any EvalVisitor::visitTrailer(Python3Parser::TrailerContext *ctx)
@@ -461,12 +517,17 @@ antlrcpp::Any EvalVisitor::visitAtom(Python3Parser::AtomContext *ctx) {
     else throw pyException("Unexpected Error in visitAtom()");
 }
 
-antlrcpp::Any EvalVisitor::visitTestlist(Python3Parser::TestlistContext *ctx) {
+antlrcpp::Any EvalVisitor::visitTestlist(Python3Parser::TestlistContext *ctx)
+//return std::vector<BasicVariable>
+{
 #ifdef debug_info
     printf("visitTestlist\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    std::vector<BasicVariable> retVector;
+    for (auto i:ctx->test())
+        retVector.emplace_back(visitTest(i).as<BasicVariable>());
+    return retVector;
 }
 
 antlrcpp::Any EvalVisitor::visitArglist(Python3Parser::ArglistContext *ctx) {

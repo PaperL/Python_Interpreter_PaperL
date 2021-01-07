@@ -23,13 +23,13 @@ private:
     variableMap globalVariable;
     variableStack localVariableStack;
 public:
-    pyNamespace();//设定stdFunction
-
 
     BasicVariable getVariable(const std::string &name, int declareType = 0);
     //declareType = 0 for not declare, 1 for global, 2 for local
 
     void assignVariable(const std::string &name, const BasicVariable &arg);//赋值
+
+    BasicVariable getValue(const BasicVariable &arg);
 
 
     void defineFunction(const std::string &name, Python3Parser::FuncdefContext *arg);

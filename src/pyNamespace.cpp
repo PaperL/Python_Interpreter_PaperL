@@ -4,12 +4,6 @@
 
 #include "pyNamespace.h"
 
-pyNamespace::pyNamespace() {
-    Python3Parser::FuncdefContext tempFunction();
-    tempFunction().getText()
-
-}
-
 BasicVariable pyNamespace::getVariable(const std::string &name, int declareType) {
     auto p = globalVariable.find(name);
     if (p != globalVariable.end())
@@ -41,6 +35,14 @@ void pyNamespace::assignVariable(const std::string &name, const BasicVariable &a
     }
 
     throw pyException("Variable \"" + name + "\" Not Found");
+}
+
+BasicVariable pyNamespace::getValue(const BasicVariable &arg) {
+    if (arg.getType() == BasicVariable::pyName)
+        return getVariable(arg.getName());
+    else if (arg.getType() == BasicVariable::pyNull)
+        throw pyException("Try to Handle Null BasicVariable as BasicVariable with Name/Value");
+    else return arg;
 }
 
 void pyNamespace::defineFunction(const std::string &name, Python3Parser::FuncdefContext *arg) {
