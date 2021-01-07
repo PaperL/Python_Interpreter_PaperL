@@ -3,6 +3,8 @@
 
 
 #include <string>//stod
+#include <vector>
+#include <utility>//pair
 
 #include "Python3BaseVisitor.h"
 #include "BasicVariable.h"

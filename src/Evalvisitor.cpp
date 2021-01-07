@@ -68,6 +68,7 @@ antlrcpp::Any EvalVisitor::visitSmall_stmt(Python3Parser::Small_stmtContext *ctx
 }
 
 antlrcpp::Any EvalVisitor::visitExpr_stmt(Python3Parser::Expr_stmtContext *ctx) {
+    //python赋值语句无返回值
 #ifdef debug_info
     printf("visitExpr_stmt\n");
     std::cout << ctx->getText() << std::endl;
@@ -154,7 +155,7 @@ antlrcpp::Any EvalVisitor::visitTest(Python3Parser::TestContext *ctx) {
     printf("visitTest\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    return visitOr_test(ctx->or_test());
 }
 
 antlrcpp::Any EvalVisitor::visitOr_test(Python3Parser::Or_testContext *ctx) {
@@ -162,7 +163,19 @@ antlrcpp::Any EvalVisitor::visitOr_test(Python3Parser::Or_testContext *ctx) {
     printf("visitOr_test\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    auto and_test_vector = ctx->and_test();
+    if (and_test_vector.empty())//此处不可能为empty
+        throw pyException("Get Empty Vector of and_test()");
+        //return BasicVariable();
+    else if (and_test_vector.size() == 1)
+        return visitAnd_test(and_test_vector.front());
+    else {
+        for (auto i:and_test_vector) {
+            if ((visitAnd_test(i).as<BasicVariable>()).getBool())
+                return BasicVariable(true);
+        }
+        return BasicVariable(false);
+    }
 }
 
 antlrcpp::Any EvalVisitor::visitAnd_test(Python3Parser::And_testContext *ctx) {
@@ -170,7 +183,18 @@ antlrcpp::Any EvalVisitor::visitAnd_test(Python3Parser::And_testContext *ctx) {
     printf("visitAnd_test\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    auto not_test_vector = ctx->not_test();
+    if (not_test_vector.empty())
+        return BasicVariable();
+    else if (not_test_vector.size() == 1)
+        return visitNot_test(not_test_vector.front());
+    else {
+        for (auto i:not_test_vector) {
+            if (!(visitNot_test(i).as<BasicVariable>()).getBool())
+                return BasicVariable(false);
+        }
+        return BasicVariable(true);
+    }
 }
 
 antlrcpp::Any EvalVisitor::visitNot_test(Python3Parser::Not_testContext *ctx) {
@@ -178,7 +202,12 @@ antlrcpp::Any EvalVisitor::visitNot_test(Python3Parser::Not_testContext *ctx) {
     printf("visitNot_test\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    if (ctx->not_test()) {
+        return !(visitNot_test(ctx->not_test()).as<BasicVariable>().toBool());
+    } else if (ctx->comparison())
+        return visitComparison(ctx->comparison()).as<BasicVariable>();
+    else
+        throw pyException("Unexpected Error in visitNot_test()");
 }
 
 antlrcpp::Any EvalVisitor::visitComparison(Python3Parser::ComparisonContext *ctx) {
@@ -186,7 +215,41 @@ antlrcpp::Any EvalVisitor::visitComparison(Python3Parser::ComparisonContext *ctx
     printf("visitComparison\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    //todo 应用 comp_op_vector[i]->GREATER_THAN() 而非 getText()
+    auto arith_expr_vector = ctx->arith_expr();
+    auto comp_op_vector = ctx->comp_op();
+    if (arith_expr_vector.size() == 1)
+        return visitArith_expr(arith_expr_vector.front());
+    else if (arith_expr_vector.size() > 1) {//e.g. a<b<c 从前往后(左结合)依次遍历小于号
+        BasicVariable leftValue;
+        BasicVariable rightValue = visitArith_expr(arith_expr_vector.front()).as<BasicVariable>();
+        std::string sign;
+        for (int i = 0; i < comp_op_vector.size(); ++i) {
+            leftValue = rightValue;
+            rightValue = visitArith_expr(arith_expr_vector[i + 1]).as<BasicVariable>();
+            sign = comp_op_vector[i]->getText();
+            if (sign == "<") {
+                if (!(leftValue < rightValue))
+                    return BasicVariable(false);
+            } else if (sign == ">") {
+                if (!(leftValue > rightValue))
+                    return BasicVariable(false);
+            } else if (sign == "==") {
+                if (!(leftValue == rightValue))
+                    return BasicVariable(false);
+            } else if (sign == ">=") {
+                if (!(leftValue >= rightValue))
+                    return BasicVariable(false);
+            } else if (sign == "<=") {
+                if (!(leftValue <= rightValue))
+                    return BasicVariable(false);
+            } else if (sign == "!=") {
+                if (!(leftValue != rightValue))
+                    return BasicVariable(false);
+            } else throw pyException("Unexpected Error1 in visitComparison()");
+        }
+        return BasicVariable(true);
+    } else throw pyException("Unexpected Error2 in visitComparison()");
 }
 
 antlrcpp::Any EvalVisitor::visitComp_op(Python3Parser::Comp_opContext *ctx) {
@@ -194,7 +257,8 @@ antlrcpp::Any EvalVisitor::visitComp_op(Python3Parser::Comp_opContext *ctx) {
     printf("visitComp_op\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    return nullptr;
+    //return visitChildren(ctx);
 }
 
 antlrcpp::Any EvalVisitor::visitArith_expr(Python3Parser::Arith_exprContext *ctx) {
@@ -202,7 +266,25 @@ antlrcpp::Any EvalVisitor::visitArith_expr(Python3Parser::Arith_exprContext *ctx
     printf("visitArith_expr\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    auto term_vector = ctx->term();
+    auto addorsub_op_vector = ctx->addorsub_op();
+    if (term_vector.size() == 1)
+        return visitTerm(term_vector.front());
+    else if (term_vector.size() > 1) {//e.g. a+b-c 从前往后(左结合)依次遍历加减号
+        BasicVariable leftValue = visitTerm(term_vector.front()).as<BasicVariable>();
+        BasicVariable rightValue;
+        std::string sign;
+        for (int i = 0; i < addorsub_op_vector.size(); ++i) {
+            rightValue = visitTerm(term_vector[i + 1]).as<BasicVariable>();
+            sign = addorsub_op_vector[i]->getText();
+            if (sign == "+") {
+                leftValue += rightValue;
+            } else if (sign == "-") {
+                leftValue -= rightValue;
+            } else throw pyException("Unexpected Error1 in visitArith_expr()");
+        }
+        return leftValue;
+    } else throw pyException("Unexpected Error2 in visitArith_expr()");
 }
 
 antlrcpp::Any EvalVisitor::visitAddorsub_op(Python3Parser::Addorsub_opContext *ctx) {
@@ -210,7 +292,8 @@ antlrcpp::Any EvalVisitor::visitAddorsub_op(Python3Parser::Addorsub_opContext *c
     printf("visitAddorsub_op\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    return nullptr;
+    //return visitChildren(ctx);
 }
 
 antlrcpp::Any EvalVisitor::visitTerm(Python3Parser::TermContext *ctx) {
@@ -218,7 +301,29 @@ antlrcpp::Any EvalVisitor::visitTerm(Python3Parser::TermContext *ctx) {
     printf("visitTerm\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    auto factor_vector = ctx->factor();
+    auto muldivmod_op = ctx->muldivmod_op();
+    if (factor_vector.size() == 1)
+        return visitFactor(factor_vector.front());
+    else if (factor_vector.size() > 1) {//e.g. a*b/c 从前往后(左结合)依次遍历符号
+        BasicVariable leftValue = visitFactor(factor_vector.front()).as<BasicVariable>();
+        BasicVariable rightValue;
+        std::string sign;
+        for (int i = 0; i < muldivmod_op.size(); ++i) {
+            rightValue = visitFactor(factor_vector[i + 1]).as<BasicVariable>();
+            sign = muldivmod_op[i]->getText();
+            if (sign == "*") {
+                leftValue *= rightValue;
+            } else if (sign == "/") {
+                leftValue /= rightValue;//todo 此处相关函数待实现
+            } else if (sign == "//") {
+                leftValue /= rightValue;
+            } else if (sign == "%") {
+                leftValue %= rightValue;
+            } else throw pyException("Unexpected Error1 in visitTerm()");
+        }
+        return leftValue;
+    } else throw pyException("Unexpected Error2 in visitTerm()");
 }
 
 antlrcpp::Any EvalVisitor::visitMuldivmod_op(Python3Parser::Muldivmod_opContext *ctx) {
@@ -226,15 +331,28 @@ antlrcpp::Any EvalVisitor::visitMuldivmod_op(Python3Parser::Muldivmod_opContext 
     printf("visitMuldivmod_op\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    return nullptr;
+    //return visitChildren(ctx);
 }
 
 antlrcpp::Any EvalVisitor::visitFactor(Python3Parser::FactorContext *ctx) {
+    //  此处可以修改g4文件
+    //  将    factor: ('+'|'-') factor | atom_expr;
+    //  改为  factor: addorsub_op factor | atom_expr;
+    //  并下调 addorsub_op: '+'|'-'; 行位置
+    //  但是需要调整Python3Parser.h/.cpp中内容
 #ifdef debug_info
     printf("visitFactor\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    if (ctx->factor()) {
+        if (ctx->ADD())
+            return +(visit(ctx->factor()).as<BasicVariable>());
+        else if (ctx->MINUS())
+            return -(visit(ctx->factor()).as<BasicVariable>());
+    } else if (ctx->atom_expr()) {
+        return visit(ctx->atom_expr());
+    } else throw pyException("Unexpected Error in visitFactor()");
 }
 
 antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) {
@@ -242,16 +360,30 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
     printf("visitAtom_expr\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    if (!ctx->trailer()) return visitAtom(ctx->atom());//非函数则直接返回Atom（BasicVariable）
+    if (!ctx->trailer()) return visitAtom(ctx->atom());
+        //非函数则直接返回Atom（BasicVariable），可以是pyName类型的BasicVariable
     else {
         BasicVariable atom = visitAtom(ctx->atom());
-        if (atom.getType() != BasicVariable::pyName)
-            throw pyException("Atom for Function Name is not pyName Type");
+        std::vector<std::pair<BasicVariable, BasicVariable> > arglist_vector = visitTrailer(ctx->trailer());
+        //if (atom.getType() != BasicVariable::pyName)
+        //    throw pyException("Atom for Function Name is not pyName Type BasicVariable");
 
-        if (atom.getName() == "print") {//python不允许print(a=b)，即赋值语句无返回值
-
+        if (atom.getName() == "print") {
+            if (!arglist_vector.empty()) {
+                for (auto i = arglist_vector.begin(); i != arglist_vector.end() - 1; ++i)
+                    if (i->first.isNull()) {
+                        std::cout << Namespace.getVariable(i->second.getName()) << ' ';
+                    } else throw pyException("Call print() with Keyword Argument");
+                std::cout << Namespace.getVariable(arglist_vector.back().second.getName()) << std::endl;
+            } else std::cout << std::endl;
+            return BasicVariable();
         } else if (atom.getName() == "bool") {
-
+            if(arglist_vector.empty())
+                return BasicVariable(false);
+            else if(arglist_vector.size()==1){
+                BasicVariable temp(arglist_vector.front().second);
+                return temp.toBool();
+            }else throw pyException("bool() Get more than 1 Argument");
         } else if (atom.getName() == "int") {
 
         } else if (atom.getName() == "float") {
@@ -289,12 +421,17 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
     return visitChildren(ctx);
 }
 
-antlrcpp::Any EvalVisitor::visitTrailer(Python3Parser::TrailerContext *ctx) {
+antlrcpp::Any EvalVisitor::visitTrailer(Python3Parser::TrailerContext *ctx)
+//return type: std::vector<std::pair<BasicVariable, BasicVariable> >
+{
 #ifdef debug_info
     printf("visitTrailer\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    if (ctx->arglist())
+        return visitArglist(ctx->arglist());
+    else std::vector<std::pair<BasicVariable, BasicVariable> >();
+    return visitChildren(ctx);//to arglist
 }
 
 antlrcpp::Any EvalVisitor::visitAtom(Python3Parser::AtomContext *ctx) {
@@ -303,19 +440,25 @@ antlrcpp::Any EvalVisitor::visitAtom(Python3Parser::AtomContext *ctx) {
     std::cout << ctx->getText() << std::endl;
 #endif
     if (ctx->NAME())
-        return BasicVariable(ctx->NAME()->getText(), BasicVariable::setName);//todo 此处需确认返回内容
+        return BasicVariable(ctx->NAME()->getText(), BasicVariable::setName);
     else if (ctx->NUMBER()) {
-        if (ctx->getText().find('.') == std::string::npos)
+        if (ctx->NUMBER()->getText().find('.') == std::string::npos)//保存getText()优化
             return BasicVariable(HighPrecision(ctx->getText()));
-        else return BasicVariable(stod(ctx->getText()));//todo 此处可能抛出异常
+        else return BasicVariable(stod(ctx->NUMBER()->getText()));//todo 此处stod
     } else if (!ctx->STRING().empty()) {
         BasicVariable temps("");
         for (auto i : ctx->STRING())
-            temps += BasicVariable(i->getText().substr(1, i->getText().length() - 2));//字符串首末有双引号
+            temps += BasicVariable(i->getText().substr(1, i->getText().length() - 2));//todo 字符串首末有双引号
         return temps;
     } else if (ctx->NONE())
         return BasicVariable(BasicVariable::setNone);
-    else return BasicVariable();
+    else if (ctx->TRUE())
+        return BasicVariable(true);
+    else if (ctx->FALSE())
+        return BasicVariable(false);
+    else if (ctx->test())
+        return visitTest(ctx->test());
+    else throw pyException("Unexpected Error in visitAtom()");
 }
 
 antlrcpp::Any EvalVisitor::visitTestlist(Python3Parser::TestlistContext *ctx) {
@@ -331,7 +474,11 @@ antlrcpp::Any EvalVisitor::visitArglist(Python3Parser::ArglistContext *ctx) {
     printf("visitArglist\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    std::vector<std::pair<BasicVariable, BasicVariable> > arglist;
+    auto argument_vector = ctx->argument();
+    for (auto i:argument_vector)
+        arglist.emplace_back(visitArgument(i));
+    return arglist;
 }
 
 antlrcpp::Any EvalVisitor::visitArgument(Python3Parser::ArgumentContext *ctx) {
@@ -339,5 +486,11 @@ antlrcpp::Any EvalVisitor::visitArgument(Python3Parser::ArgumentContext *ctx) {
     printf("visitArgument\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    auto test_vector = ctx->test();
+    if (test_vector.size() == 1)
+        return std::make_pair(BasicVariable(), visitTest(ctx->test().front()).as<BasicVariable>());
+    else if (test_vector.size() == 2)
+        return std::make_pair(visitTest(ctx->test()[0]).as<BasicVariable>(),
+                              visitTest(ctx->test()[1]).as<BasicVariable>());
+    else throw pyException("Argument with 0 or more than 2 Test");
 }

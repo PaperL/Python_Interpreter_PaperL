@@ -156,14 +156,8 @@ std::istream &operator>>(std::istream &in, HighPrecision &arg) {
 }
 
 std::ostream &operator<<(std::ostream &out, const HighPrecision &arg) {
-    arg.print();
+    out << std::string(arg);
     return out;
-}
-
-HighPrecision &HighPrecision::operator=(const HighPrecision &arg) {
-    this->sign = arg.sign;
-    this->num = arg.num;
-    return *this;
 }
 
 bool HighPrecision::operator==(const HighPrecision &arg) const {
@@ -208,7 +202,7 @@ bool HighPrecision::operator>=(const HighPrecision &arg) const { return !((*this
 HighPrecision HighPrecision::operator-() const { return HighPrecision(*this, 1); }
 
 HighPrecision HighPrecision::operator+(const HighPrecision &arg) const {//todo 注意空值情况
-    if(arg.isZero())
+    if (arg.isZero())
         return (*this);
     if (this->sign == arg.sign) {
         HighPrecision tempBigInt;
@@ -256,7 +250,7 @@ HighPrecision HighPrecision::operator+(const HighPrecision &arg) const {//todo �
 }
 
 HighPrecision HighPrecision::operator-(const HighPrecision &arg) const {
-    if(arg.isZero())
+    if (arg.isZero())
         return (*this);
     if (this->sign == arg.sign) {
         if (digitLess(*this, arg))
@@ -355,7 +349,7 @@ HighPrecision HighPrecision::operator>>(const int arg) const {
 }
 
 HighPrecision HighPrecision::operator/(const HighPrecision &arg) const {
-    if(arg.isZero())
+    if (arg.isZero())
         throw pyException("Divide Zero");
     if (this->isZero())
         return highPrecisionZero;
@@ -389,11 +383,14 @@ HighPrecision HighPrecision::operator/(const HighPrecision &arg) const {
     for (j = 0; j < tempAns.size() - i; ++j)
         ans.num.emplace_back(tempAns[tempAns.size() - 1 - j]);
 
+    if (ans.sign == 0 && !myself.isZero())//整数整除为浮点结果向下取整
+        ans = ans - 1;
+
     return ans;
 }
 
 HighPrecision HighPrecision::operator%(const HighPrecision &arg) const {
-    if(arg.isZero())
+    if (arg.isZero())
         throw pyException("Divide Zero");
     if (this->isZero())
         return highPrecisionZero;
@@ -416,9 +413,31 @@ HighPrecision HighPrecision::operator%(const HighPrecision &arg) const {
         if (j != 0)
             myself = myself - tempMulti * j;
     }
-    if (this->sign == 1 || myself.isZero())
+
+    if (this->sign == arg.sign || myself.isZero())
         return myself;
-    else return (-myself);
+    else return (abs(arg) - myself);//todo:abs函数未测试
+}
+
+HighPrecision::operator bool() const {
+    return !(*this).isZero();
+}
+
+HighPrecision::operator double() const {
+    double temp = 0, base = 1;
+    for (auto i:num) {
+        temp += base * int(i);
+        base *= 10;
+    }
+    return (sign == 1) ? temp : (-temp);
+}
+
+HighPrecision::operator std::string() const {
+    std::string temp;
+    if (sign == 0)temp.push_back('-');
+    for (int i = num.size() - 1; i >= 0; --i)
+        temp.push_back(char(num[i] + 48));
+    return temp;
 }
 
 bool HighPrecision::isZero() const {
@@ -427,7 +446,15 @@ bool HighPrecision::isZero() const {
     return false;
 }
 
+char HighPrecision::getSign() const { return sign; }
+
 void HighPrecision::setNegative() {
     if (!(num.size() == 1 && num[0] == 0))
         sign = 1 - sign;
+}
+
+HighPrecision HighPrecision::abs(const HighPrecision &arg) const {
+    if (arg.sign == 0)
+        return -arg;
+    else return arg;
 }

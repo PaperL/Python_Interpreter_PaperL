@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <string>
+#include <sstream>//double to string
 
 #include "HighPrecision.h"
 #include "robust.h"
@@ -14,7 +15,7 @@
 class BasicVariable {
 public:
     enum ConstructorType {
-        setDefault, setNone, setNegation, setNegative, setName
+        setDefault, setNone, setNegation, setPositive,setNegative, setName
     };
 
     enum BasicDataType {
@@ -54,9 +55,17 @@ public:
     ~BasicVariable();
 
 
-    BasicDataType getType();
+    BasicDataType getType() const;
 
-    std::string &getName();
+    std::string &getName() const;
+
+    bool getBool() const;
+
+    HighPrecision &getInt() const;
+
+    double &getFloat() const;
+
+    std::string &getString() const;
 
 
     //friend std::istream &operator>>(std::istream &in, BasicVariable &arg);
@@ -89,6 +98,8 @@ public:
     bool operator>=(const BasicVariable &arg) const;
 
 
+    BasicVariable operator+() const;
+
     BasicVariable operator-() const;
 
 
@@ -113,15 +124,18 @@ public:
     BasicVariable operator%=(const BasicVariable &arg) const;
 
 
-    void toNone();
+    BasicVariable &toNone();
 
-    void toBool();
+    BasicVariable &toBool();
 
-    void toInt();
+    BasicVariable &toInt();
 
-    void toDouble();
+    BasicVariable &toFloat();
 
-    void toStr();
+    BasicVariable &toStr();
+
+
+    bool isNull();
 };
 
 

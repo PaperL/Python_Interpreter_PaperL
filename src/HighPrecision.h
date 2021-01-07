@@ -67,7 +67,9 @@ public:
     friend std::ostream &operator<<(std::ostream &out, const HighPrecision &arg);
 
 
-    HighPrecision &operator=(const HighPrecision &arg);
+    /*HighPrecision &operator=(const HighPrecision &arg);
+
+    HighPrecision &operator=(HighPrecision &&arg);*/
 
 
     bool operator==(const HighPrecision &arg) const;
@@ -103,9 +105,20 @@ public:
     HighPrecision operator%(const HighPrecision &arg) const;
 
 
-    bool isZero()const;
+    explicit operator bool() const;
+
+    explicit operator double() const;
+
+    explicit operator std::string() const;
+
+
+    bool isZero() const;
+
+    char getSign() const;
 
     void setNegative();
+
+    HighPrecision abs(const HighPrecision &arg) const;
 };
 
 
