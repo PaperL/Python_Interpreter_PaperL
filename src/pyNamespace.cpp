@@ -15,7 +15,7 @@ BasicVariable pyNamespace::getVariable(const std::string &name) {
             return p->second;
     }
 
-    throw pyException("Variable \"" + name + "\" Not Found");
+    throw pyException("Variable \"" + name + "\" Not Found (getVariable)");
 }
 
 void pyNamespace::assignVariable(const std::string &name, const BasicVariable &arg, declareType type) {
@@ -30,7 +30,7 @@ void pyNamespace::assignVariable(const std::string &name, const BasicVariable &a
     }
 
     if (type == pyNotDeclare)
-        throw pyException("Variable \"" + name + "\" Not Found");
+        throw pyException("Variable \"" + name + "\" Not Found (assignVariable)");
     else if (type == pyGlobal)
         globalVariable.insert({name, arg});
     else if (type == pyLocal)

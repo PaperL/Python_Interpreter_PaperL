@@ -36,7 +36,7 @@ private:
 
     std::string strShow();
 
-    void print() const;*///todo get,show,print函数应该是private还是public?
+    void print() const;*/
 
 public:
 
@@ -113,15 +113,15 @@ public:
 
     BasicVariable operator%(const BasicVariable &arg) const;
 
-    BasicVariable operator+=(const BasicVariable &arg) const;
+    BasicVariable operator+=(const BasicVariable &arg);
 
-    BasicVariable operator-=(const BasicVariable &arg) const;
+    BasicVariable operator-=(const BasicVariable &arg);
 
-    BasicVariable operator*=(const BasicVariable &arg) const;
+    BasicVariable operator*=(const BasicVariable &arg);
 
-    BasicVariable operator/=(const BasicVariable &arg) const;
+    BasicVariable operator/=(const BasicVariable &arg);
 
-    BasicVariable operator%=(const BasicVariable &arg) const;
+    BasicVariable operator%=(const BasicVariable &arg);
 
 
     BasicVariable &toNone();

@@ -5,7 +5,7 @@
 #ifndef PYTHON_INTERPRETER_ROBUST_H
 #define PYTHON_INTERPRETER_ROBUST_H
 
-#define debug_info
+//#define debug_info
 
 #include <cstdio>//perror
 #include <string>

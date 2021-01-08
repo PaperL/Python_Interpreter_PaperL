@@ -176,7 +176,7 @@ BasicVariable &BasicVariable::operator=(const BasicVariable &arg) {
     else if (dataType == pyBoolean)
         valBoolean = arg.valBoolean;
     else if (dataType == pyInteger)
-        valInteger = new HighPrecision(*arg.valInteger);//todo 构造函数使用方式是否正确？
+        valInteger = new HighPrecision(*arg.valInteger);
     else if (dataType == pyFloatingPoint)
         valFloatingPoint = new double(*arg.valFloatingPoint);
     else if (dataType == pyString)
@@ -387,15 +387,30 @@ BasicVariable BasicVariable::operator%(const BasicVariable &arg) const {
 
 }
 
-BasicVariable BasicVariable::operator+=(const BasicVariable &arg) const { return (*this) + arg; }
+BasicVariable BasicVariable::operator+=(const BasicVariable &arg) {
+    (*this) = (*this) + arg;
+    return (*this);
+}
 
-BasicVariable BasicVariable::operator-=(const BasicVariable &arg) const { return (*this) - arg; }
+BasicVariable BasicVariable::operator-=(const BasicVariable &arg) {
+    (*this) = (*this) - arg;
+    return (*this);
+}
 
-BasicVariable BasicVariable::operator*=(const BasicVariable &arg) const { return (*this) * arg; }
+BasicVariable BasicVariable::operator*=(const BasicVariable &arg) {
+    (*this) = (*this) * arg;
+    return (*this);
+}
 
-BasicVariable BasicVariable::operator/=(const BasicVariable &arg) const { return (*this) / arg; }
+BasicVariable BasicVariable::operator/=(const BasicVariable &arg) {
+    (*this) = (*this) / arg;
+    return (*this);
+}
 
-BasicVariable BasicVariable::operator%=(const BasicVariable &arg) const { return (*this) % arg; }
+BasicVariable BasicVariable::operator%=(const BasicVariable &arg) {
+    (*this) = (*this) % arg;
+    return (*this);
+}
 
 BasicVariable &BasicVariable::toNone() {
     if (dataType == pyNone)return (*this);

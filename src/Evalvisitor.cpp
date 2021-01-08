@@ -15,6 +15,8 @@ antlrcpp::Any EvalVisitor::visitFuncdef(Python3Parser::FuncdefContext *ctx) {
     printf("visitFuncdef\n");
     std::cout << ctx->getText() << std::endl;
 #endif
+    //todo 保存函数名
+    //函数体，以及函数栈空间（内容为参数表）
     return visitChildren(ctx);
 }
 
@@ -140,19 +142,24 @@ antlrcpp::Any EvalVisitor::visitExpr_stmt(Python3Parser::Expr_stmtContext *ctx) 
                                      pyNamespace::pyNotDeclare);
         }
     } else {
-        if (testlistVector.size() < 2)
-            throw pyException("Unexpected Error3 in visitExpr_stmt()");
-        auto &leftTestlist = testlistVector.back();
-        auto &rightTestlist = testlistVector.back();
-        for (int i = testlistVector.size() - 2; i >= 0; --i) {
-            rightTestlist = leftTestlist;
-            leftTestlist = testlistVector[i];
-            if (leftTestlist.size() != rightTestlist.size())
-                throw pyException("Different Number of Values on Two Sides of Expression Statement");
-            for (int j = 0; j < leftTestlist.size(); ++j) {
-                Namespace.assignVariable(leftTestlist[j].getName(),
-                                         Namespace.getValue(leftTestlist[j]) + Namespace.getValue(rightTestlist[j]),
-                                         pyNamespace::pyGlobal);//todo global/local判断待研究
+        if (testlistVector.size() < 2) {
+            // throw pyException("Unexpected Error3 in visitExpr_stmt()");
+            // DO NOTHING
+            // 函数开头已经visit过了
+            return nullptr;
+        } else {
+            auto leftTestlist = testlistVector.end() - 1;
+            auto rightTestlist = testlistVector.end();
+            for (int i = testlistVector.size() - 2; i >= 0; --i) {
+                rightTestlist--;
+                leftTestlist--;
+                if (leftTestlist->size() != rightTestlist->size())
+                    throw pyException("Different Number of Values on Two Sides of Expression Statement");
+                for (int j = 0; j < leftTestlist->size(); ++j) {
+                    Namespace.assignVariable((*leftTestlist)[j].getName(),
+                                             Namespace.getValue((*rightTestlist)[j]),
+                                             pyNamespace::pyGlobal);//todo global/local判断待研究
+                }
             }
         }
     }
@@ -252,7 +259,7 @@ antlrcpp::Any EvalVisitor::visitOr_test(Python3Parser::Or_testContext *ctx) {
         return visitAnd_test(and_test_vector.front());
     else {
         for (auto i:and_test_vector) {
-            if ((visitAnd_test(i).as<BasicVariable>()).getBool())
+            if ((Namespace.getValue(visitAnd_test(i).as<BasicVariable>())).getBool())
                 return BasicVariable(true);
         }
         return BasicVariable(false);
@@ -271,7 +278,7 @@ antlrcpp::Any EvalVisitor::visitAnd_test(Python3Parser::And_testContext *ctx) {
         return visitNot_test(not_test_vector.front());
     else {
         for (auto i:not_test_vector) {
-            if (!(visitNot_test(i).as<BasicVariable>()).getBool())
+            if (!(Namespace.getValue(visitNot_test(i).as<BasicVariable>())).getBool())
                 return BasicVariable(false);
         }
         return BasicVariable(true);
@@ -284,7 +291,7 @@ antlrcpp::Any EvalVisitor::visitNot_test(Python3Parser::Not_testContext *ctx) {
     std::cout << ctx->getText() << std::endl;
 #endif
     if (ctx->not_test()) {
-        return !(visitNot_test(ctx->not_test()).as<BasicVariable>().toBool());
+        return !((Namespace.getValue(visitNot_test(ctx->not_test()).as<BasicVariable>())).toBool());
     } else if (ctx->comparison())
         return visitComparison(ctx->comparison()).as<BasicVariable>();
     else
@@ -303,11 +310,11 @@ antlrcpp::Any EvalVisitor::visitComparison(Python3Parser::ComparisonContext *ctx
         return visitArith_expr(arith_expr_vector.front());
     else if (arith_expr_vector.size() > 1) {//e.g. a<b<c 从前往后(左结合)依次遍历小于号
         BasicVariable leftValue;
-        BasicVariable rightValue = visitArith_expr(arith_expr_vector.front()).as<BasicVariable>();
+        BasicVariable rightValue = Namespace.getValue(visitArith_expr(arith_expr_vector.front()).as<BasicVariable>());
         std::string sign;
         for (int i = 0; i < comp_op_vector.size(); ++i) {
             leftValue = rightValue;
-            rightValue = visitArith_expr(arith_expr_vector[i + 1]).as<BasicVariable>();
+            rightValue = Namespace.getValue(visitArith_expr(arith_expr_vector[i + 1]).as<BasicVariable>());
             sign = comp_op_vector[i]->getText();
             if (sign == "<") {
                 if (!(leftValue < rightValue))
@@ -352,11 +359,11 @@ antlrcpp::Any EvalVisitor::visitArith_expr(Python3Parser::Arith_exprContext *ctx
     if (term_vector.size() == 1)
         return visitTerm(term_vector.front());
     else if (term_vector.size() > 1) {//e.g. a+b-c 从前往后(左结合)依次遍历加减号
-        BasicVariable leftValue = visitTerm(term_vector.front()).as<BasicVariable>();
+        BasicVariable leftValue = Namespace.getValue(visitTerm(term_vector.front()).as<BasicVariable>());
         BasicVariable rightValue;
         std::string sign;
         for (int i = 0; i < addorsub_op_vector.size(); ++i) {
-            rightValue = visitTerm(term_vector[i + 1]).as<BasicVariable>();
+            rightValue = Namespace.getValue(visitTerm(term_vector[i + 1]).as<BasicVariable>());
             sign = addorsub_op_vector[i]->getText();
             if (sign == "+") {
                 leftValue += rightValue;
@@ -389,11 +396,11 @@ antlrcpp::Any EvalVisitor::visitTerm(Python3Parser::TermContext *ctx) {
     else if (factor_vector.size() > 1) {
         //e.g. a*b/c 从前往后(左结合)依次遍历符号
         //并将pyName转为实值
-        BasicVariable leftValue = visitFactor(factor_vector.front()).as<BasicVariable>();
+        BasicVariable leftValue = Namespace.getValue(visitFactor(factor_vector.front()).as<BasicVariable>());
         BasicVariable rightValue;
         std::string sign;
         for (int i = 0; i < muldivmod_op.size(); ++i) {
-            rightValue = visitFactor(factor_vector[i + 1]).as<BasicVariable>();
+            rightValue = Namespace.getValue(visitFactor(factor_vector[i + 1]).as<BasicVariable>());
             sign = muldivmod_op[i]->getText();
             if (sign == "*") {
                 leftValue *= rightValue;
@@ -430,11 +437,11 @@ antlrcpp::Any EvalVisitor::visitFactor(Python3Parser::FactorContext *ctx) {
 #endif
     if (ctx->factor()) {
         if (ctx->ADD())
-            return +(visit(ctx->factor()).as<BasicVariable>());
+            return +Namespace.getValue(visitFactor(ctx->factor()).as<BasicVariable>());
         else if (ctx->MINUS())
-            return -(visit(ctx->factor()).as<BasicVariable>());
+            return -Namespace.getValue(visitFactor(ctx->factor()).as<BasicVariable>());
     } else if (ctx->atom_expr()) {
-        return visit(ctx->atom_expr());
+        return visitAtom_expr(ctx->atom_expr());
     } else throw pyException("Unexpected Error in visitFactor()");
 }
 
@@ -553,8 +560,8 @@ antlrcpp::Any EvalVisitor::visitAtom(Python3Parser::AtomContext *ctx) {
         else return BasicVariable(stod(ctx->NUMBER()->getText()));//todo 此处stod
     } else if (!ctx->STRING().empty()) {
         BasicVariable temps("");
-        for (auto i : ctx->STRING())
-            temps += BasicVariable(i->getText().substr(1, i->getText().length() - 2));//todo 字符串首末有双引号
+        for (auto i : ctx->STRING())// 字符串首末有单/双引号且可以连续出现
+            temps += BasicVariable(i->getText().substr(1, i->getText().length() - 2));
         return temps;
     } else if (ctx->NONE())
         return BasicVariable(BasicVariable::setNone);
