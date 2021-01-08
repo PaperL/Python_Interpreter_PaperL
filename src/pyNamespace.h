@@ -24,10 +24,15 @@ private:
     variableStack localVariableStack;
 public:
 
-    BasicVariable getVariable(const std::string &name, int declareType = 0);
-    //declareType = 0 for not declare, 1 for global, 2 for local
+    enum declareType {
+        pyNotDeclare, pyGlobal, pyLocal
+    };
 
-    void assignVariable(const std::string &name, const BasicVariable &arg);//赋值
+    BasicVariable getVariable(const std::string &name);
+
+
+    void assignVariable(const std::string &name, const BasicVariable &arg, declareType type = pyNotDeclare);
+    //赋值
 
     BasicVariable getValue(const BasicVariable &arg);
 

@@ -4,7 +4,7 @@
 
 #include "pyNamespace.h"
 
-BasicVariable pyNamespace::getVariable(const std::string &name, int declareType) {
+BasicVariable pyNamespace::getVariable(const std::string &name) {
     auto p = globalVariable.find(name);
     if (p != globalVariable.end())
         return p->second;
@@ -15,15 +15,10 @@ BasicVariable pyNamespace::getVariable(const std::string &name, int declareType)
             return p->second;
     }
 
-    if (declareType == 0)
-        throw pyException("Variable \"" + name + "\" Not Found");
-    else if (declareType == 1)
-        globalVariable.insert({name, BasicVariable()});
-    else if (declareType == 2)
-        localVariableStack.top().insert({name, BasicVariable()});
+    throw pyException("Variable \"" + name + "\" Not Found");
 }
 
-void pyNamespace::assignVariable(const std::string &name, const BasicVariable &arg) {
+void pyNamespace::assignVariable(const std::string &name, const BasicVariable &arg, declareType type) {
     auto p = globalVariable.find(name);
     if (p != globalVariable.end())
         p->second = arg;
@@ -34,7 +29,12 @@ void pyNamespace::assignVariable(const std::string &name, const BasicVariable &a
             p->second = arg;
     }
 
-    throw pyException("Variable \"" + name + "\" Not Found");
+    if (type == pyNotDeclare)
+        throw pyException("Variable \"" + name + "\" Not Found");
+    else if (type == pyGlobal)
+        globalVariable.insert({name, arg});
+    else if (type == pyLocal)
+        localVariableStack.top().insert({name, arg});
 }
 
 BasicVariable pyNamespace::getValue(const BasicVariable &arg) {

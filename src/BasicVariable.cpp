@@ -27,12 +27,16 @@ BasicVariable::BasicVariable(ConstructorType type) : dataType(pyNull),
 }
 
 BasicVariable::BasicVariable(const BasicVariable &arg, ConstructorType type) : dataType(arg.dataType),
-                                                                               name(arg.name),
-                                                                               valBoolean(arg.valBoolean),
-                                                                               valInteger(arg.valInteger),
-                                                                               valFloatingPoint(arg.valFloatingPoint),
-                                                                               valString(arg.valString) {
-    std::cout << "cc" << std::endl;
+                                                                               valBoolean(arg.valBoolean) {
+    if (arg.name)name = new std::string(*arg.name);
+    else name = nullptr;
+    if (arg.valInteger)valInteger = new HighPrecision(*arg.valInteger);
+    else valInteger = nullptr;
+    if (arg.valFloatingPoint)valFloatingPoint = new double(*arg.valFloatingPoint);
+    else valFloatingPoint = nullptr;
+    if (arg.valString)valString = new std::string(*arg.valString);
+    else valString = nullptr;
+
     if (type == setNegation) {
         if (dataType == pyBoolean)
             valBoolean = !valBoolean;
@@ -50,7 +54,6 @@ BasicVariable::BasicVariable(const BasicVariable &arg, ConstructorType type) : d
                 *valFloatingPoint = -(*valFloatingPoint);
         }
     }
-    std::cout << "cc2" << std::endl;
 }
 
 BasicVariable::BasicVariable(const bool &arg) : BasicVariable() {
@@ -69,7 +72,6 @@ BasicVariable::BasicVariable(const double &arg) : BasicVariable() {
 }
 
 BasicVariable::BasicVariable(const std::string &arg, ConstructorType type) : BasicVariable() {
-    std::cout << "b chese1" << std::endl;
     if (type == setDefault) {
         dataType = pyString;
         valString = new std::string(arg);
@@ -77,26 +79,23 @@ BasicVariable::BasicVariable(const std::string &arg, ConstructorType type) : Bas
         dataType = pyName;
         name = new std::string(arg);
     }
-    std::cout << "b chese2" << std::endl;
 }
 
 BasicVariable::~BasicVariable() {
     //出于不明原因被两次调用，故需保护
-    std::cout << "b chese3" << std::endl;
-    if (dataType == pyName && name != nullptr) {
+    if (dataType == pyName) {
         delete name;
         name = nullptr;
-    } else if (dataType == pyInteger && valInteger != nullptr) {
+    } else if (dataType == pyInteger) {
         delete valInteger;
         valInteger = nullptr;
-    } else if (dataType == pyFloatingPoint && valFloatingPoint != nullptr) {
+    } else if (dataType == pyFloatingPoint) {
         delete valFloatingPoint;
         valFloatingPoint = nullptr;
-    } else if (dataType == pyString && valString != nullptr) {
+    } else if (dataType == pyString) {
         delete valString;
         valString = nullptr;
     }
-    std::cout << "b chese4" << std::endl;
 }
 
 BasicVariable::BasicDataType BasicVariable::getType() const { return dataType; }
@@ -280,12 +279,12 @@ BasicVariable BasicVariable::operator-() const { return BasicVariable(*this, set
 
 BasicVariable BasicVariable::operator+(const BasicVariable &arg) const {
     if (this->dataType != pyBoolean && this->dataType != pyInteger
-        && this->dataType == pyFloatingPoint && this->dataType != pyString
+        && this->dataType != pyFloatingPoint && this->dataType != pyString
         && arg.dataType != pyBoolean && arg.dataType != pyInteger
-        && arg.dataType == pyFloatingPoint && arg.dataType != pyString)
+        && arg.dataType != pyFloatingPoint && arg.dataType != pyString)
         throw pyException("Try to Plus Variables of Null/Name/None Type");
 
-    if (this->dataType == pyString) {
+    if (this->dataType == pyString || arg.dataType == pyString) {
         if (this->dataType == arg.dataType)
             return BasicVariable((*valString) + (*arg.valString));
         else throw pyException("Try to Plus String Variable with Other Type Variable");
@@ -311,8 +310,8 @@ BasicVariable BasicVariable::operator+(const BasicVariable &arg) const {
 }
 
 BasicVariable BasicVariable::operator-(const BasicVariable &arg) const {
-    if (this->dataType != pyBoolean && this->dataType != pyInteger && this->dataType == pyFloatingPoint
-        && arg.dataType != pyBoolean && arg.dataType != pyInteger && arg.dataType == pyFloatingPoint)
+    if (this->dataType != pyBoolean && this->dataType != pyInteger && this->dataType != pyFloatingPoint
+        && arg.dataType != pyBoolean && arg.dataType != pyInteger && arg.dataType != pyFloatingPoint)
         throw pyException("Try to Minus Variables of Null/Name/None/String Type");
 
     if (this->dataType == pyFloatingPoint || arg.dataType == pyFloatingPoint) {
@@ -335,7 +334,49 @@ BasicVariable BasicVariable::operator-(const BasicVariable &arg) const {
 }
 
 BasicVariable BasicVariable::operator*(const BasicVariable &arg) const {
+    if (this->dataType != pyBoolean && this->dataType != pyInteger
+        && this->dataType != pyFloatingPoint && this->dataType != pyString
+        && arg.dataType != pyBoolean && arg.dataType != pyInteger
+        && arg.dataType != pyFloatingPoint && arg.dataType != pyString)
+        throw pyException("Try to Multiply Variables of Null/Name/None Type");
 
+    if (this->dataType == pyString || arg.dataType == pyString) {
+        if (this->dataType == pyString && arg.dataType != pyFloatingPoint) {
+            BasicVariable ret("");
+            for (BasicVariable i(HighPrecision(0));
+                 *(i.valInteger) < *(arg.valInteger);
+                 *(i.valInteger) = *(i.valInteger) + HighPrecision(1)) {//todo 可优化常数(HighPrecision++)
+                ret += (*this);
+            }
+            return ret;
+        } else if (this->dataType != pyFloatingPoint && arg.dataType == pyString) {
+            BasicVariable ret("");
+            for (BasicVariable i(HighPrecision(0));
+                 *(i.valInteger) < *(this->valInteger);
+                 *(i.valInteger) = *(i.valInteger) + HighPrecision(1)) {//todo 可优化常数(HighPrecision++)
+                ret += arg;
+            }
+            return ret;
+        } else throw pyException("Try to Multiply String Variable with Float/String Type Variable");
+    }
+
+    if (this->dataType == pyFloatingPoint || arg.dataType == pyFloatingPoint) {
+        if (this->dataType != pyFloatingPoint) {
+            BasicVariable temp(*this);
+            return BasicVariable(temp.toFloat().getFloat() * arg.getFloat());
+        } else if (arg.dataType != pyFloatingPoint) {
+            BasicVariable temp(arg);
+            return BasicVariable((*this).getFloat() * temp.toFloat().getFloat());
+        } else return BasicVariable(this->getFloat() * arg.getFloat());
+    } else {
+        if (this->dataType == pyBoolean && arg.dataType == pyBoolean)
+            return BasicVariable(HighPrecision(this->getBool() ? 1 : 0) * HighPrecision(arg.getBool() ? 1 : 0));
+        else if (this->dataType == pyBoolean)
+            return BasicVariable(HighPrecision(this->getBool() ? 1 : 0) * arg.getInt());
+        else if (arg.dataType == pyBoolean)
+            return BasicVariable(this->getInt() * HighPrecision(arg.getBool() ? 1 : 0));
+        else return BasicVariable(this->getInt() * arg.getInt());
+    }
 }
 
 BasicVariable BasicVariable::operator/(const BasicVariable &arg) const {

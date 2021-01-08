@@ -102,19 +102,59 @@ antlrcpp::Any EvalVisitor::visitExpr_stmt(Python3Parser::Expr_stmtContext *ctx) 
 
     if (ctx->augassign()) {
         if (testlistVector.size() != 2)
-            throw pyException("Unexpected Error in visitExpr_stmt()");
-        auto &leftTestlist = testlistVector.front(), &rightTestlist = testlistVector.back();
-        if (leftTestlist.size() != rightTestlist.size())
-            throw pyException("Different Number of Values on Two Sides of Expression Statement");
+            throw pyException("Unexpected Error1 in visitExpr_stmt()");
+        auto &leftTestlist = testlistVector.front();
+        auto &rightTestlist = testlistVector.back();
+        if (leftTestlist.size() != 1 || rightTestlist.size() != 1)
+            throw pyException("Unexpected Error2 in visitExpr_stmt()");
+
         if (ctx->augassign()->ADD_ASSIGN()) {
-            for (int i = 0; i < leftTestlist.size(); ++i) {
-                Namespace.assignVariable(leftTestlist[i].getName(),
-                                         Namespace.getValue(leftTestlist[i]) + Namespace.getValue(rightTestlist[i]));
-            }
+            Namespace.assignVariable(leftTestlist.front().getName(),
+                                     Namespace.getValue(leftTestlist.front()) +
+                                     Namespace.getValue(rightTestlist.front()),
+                                     pyNamespace::pyNotDeclare);
+        } else if (ctx->augassign()->SUB_ASSIGN()) {
+            Namespace.assignVariable(leftTestlist.front().getName(),
+                                     Namespace.getValue(leftTestlist.front()) -
+                                     Namespace.getValue(rightTestlist.front()),
+                                     pyNamespace::pyNotDeclare);
+        } else if (ctx->augassign()->MULT_ASSIGN()) {
+            Namespace.assignVariable(leftTestlist.front().getName(),
+                                     Namespace.getValue(leftTestlist.front()) *
+                                     Namespace.getValue(rightTestlist.front()),
+                                     pyNamespace::pyNotDeclare);
+        } else if (ctx->augassign()->DIV_ASSIGN()) {
+            Namespace.assignVariable(leftTestlist.front().getName(),
+                                     Namespace.getValue(leftTestlist.front()) /
+                                     Namespace.getValue(rightTestlist.front()),
+                                     pyNamespace::pyNotDeclare);
+        } else if (ctx->augassign()->IDIV_ASSIGN()) {
+            Namespace.assignVariable(leftTestlist.front().getName(),
+                                     Namespace.getValue(leftTestlist.front()) /
+                                     Namespace.getValue(rightTestlist.front()),
+                                     pyNamespace::pyNotDeclare);//todo 待区分整除
+        } else if (ctx->augassign()->MOD_ASSIGN()) {
+            Namespace.assignVariable(leftTestlist.front().getName(),
+                                     Namespace.getValue(leftTestlist.front()) %
+                                     Namespace.getValue(rightTestlist.front()),
+                                     pyNamespace::pyNotDeclare);
         }
     } else {
-        for (auto i:ctx->ASSIGN())
-            std::cout << "<>" << i->getText() << std::endl;
+        if (testlistVector.size() < 2)
+            throw pyException("Unexpected Error3 in visitExpr_stmt()");
+        auto &leftTestlist = testlistVector.back();
+        auto &rightTestlist = testlistVector.back();
+        for (int i = testlistVector.size() - 2; i >= 0; --i) {
+            rightTestlist = leftTestlist;
+            leftTestlist = testlistVector[i];
+            if (leftTestlist.size() != rightTestlist.size())
+                throw pyException("Different Number of Values on Two Sides of Expression Statement");
+            for (int j = 0; j < leftTestlist.size(); ++j) {
+                Namespace.assignVariable(leftTestlist[j].getName(),
+                                         Namespace.getValue(leftTestlist[j]) + Namespace.getValue(rightTestlist[j]),
+                                         pyNamespace::pyGlobal);//todo global/local判断待研究
+            }
+        }
     }
     return nullptr;
 }
@@ -403,22 +443,16 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
     printf("visitAtom_expr\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    std::cout << "chese0" << std::endl;
     if (!ctx->trailer()) return visitAtom(ctx->atom());
         //非函数则直接返回Atom（BasicVariable），可以是pyName类型的BasicVariable
     else {
-        std::cout << "chese1" << std::endl;
         const auto tempAtom(visitAtom(ctx->atom()).as<BasicVariable>());
-        std::cout << "chese2" << std::endl;
         std::vector<std::pair<BasicVariable, BasicVariable> > arglist_vector = visitTrailer(ctx->trailer());
-        std::cout << "chese3" << std::endl;
         //if (tempAtom.getType() != BasicVariable::pyName)
         //    throw pyException("Atom for Function Name is not pyName Type BasicVariable");
 
         if (tempAtom.getName() == "print") {
-            std::cout << "chese4" << std::endl;
             if (!arglist_vector.empty()) {
-                std::cout << "chese5" << std::endl;
                 for (auto i = arglist_vector.begin(); i != arglist_vector.end() - 1; ++i)
                     if (i->first.isNull()) {
                         std::cout << Namespace.getValue(i->second) << ' ';
@@ -509,11 +543,8 @@ antlrcpp::Any EvalVisitor::visitAtom(Python3Parser::AtomContext *ctx) {
     printf("visitAtom\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    std::cout << "a1" << std::endl;
     if (ctx->NAME()) {
-        std::cout << "a2" << std::endl;
         BasicVariable temp(ctx->NAME()->getText(), BasicVariable::setName);
-        std::cout << "a3" << std::endl;
         return temp;
         //return BasicVariable(ctx->NAME()->getText(), BasicVariable::setName);
     } else if (ctx->NUMBER()) {
