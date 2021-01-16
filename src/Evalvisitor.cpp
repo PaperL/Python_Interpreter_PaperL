@@ -49,8 +49,9 @@ antlrcpp::Any EvalVisitor::visitStmt(Python3Parser::StmtContext *ctx) {
     printf("visitStmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return (ctx->compound_stmt() ?
-            visitCompound_stmt(ctx->compound_stmt()) : visitSimple_stmt(ctx->simple_stmt()));
+    return (ctx->simple_stmt() ?
+            visitSimple_stmt(ctx->simple_stmt()) :
+            visitCompound_stmt(ctx->compound_stmt()));
 }
 
 antlrcpp::Any EvalVisitor::visitSimple_stmt(Python3Parser::Simple_stmtContext *ctx) {
@@ -58,6 +59,7 @@ antlrcpp::Any EvalVisitor::visitSimple_stmt(Python3Parser::Simple_stmtContext *c
     printf("visitSimple_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
+    //simple_stmt: small_stmt  NEWLINE;
     return visitSmall_stmt(ctx->small_stmt());
 }
 
@@ -66,7 +68,7 @@ antlrcpp::Any EvalVisitor::visitSmall_stmt(Python3Parser::Small_stmtContext *ctx
     printf("visitSmall_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return ((ctx->expr_stmt() == nullptr) ? visitFlow_stmt(ctx->flow_stmt()) : visitExpr_stmt(ctx->expr_stmt()));
+    return (ctx->expr_stmt() ? visitExpr_stmt(ctx->expr_stmt()) : visitFlow_stmt(ctx->flow_stmt()));
 }
 
 antlrcpp::Any EvalVisitor::visitExpr_stmt(Python3Parser::Expr_stmtContext *ctx) {
@@ -179,6 +181,7 @@ antlrcpp::Any EvalVisitor::visitFlow_stmt(Python3Parser::Flow_stmtContext *ctx) 
     printf("visitFlow_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
+
     return visitChildren(ctx);
 }
 
@@ -211,7 +214,14 @@ antlrcpp::Any EvalVisitor::visitCompound_stmt(Python3Parser::Compound_stmtContex
     printf("visitCompound_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    if (ctx->if_stmt())
+        visitIf_stmt(ctx->if_stmt());
+    else if (ctx->while_stmt())
+        visitWhile_stmt(ctx->while_stmt());
+    else if (ctx->funcdef())
+        visitFuncdef(ctx->funcdef());
+    else throw pyException("Unexpected error in visitCompound_stmt()");
+    return nullptr;
 }
 
 antlrcpp::Any EvalVisitor::visitIf_stmt(Python3Parser::If_stmtContext *ctx) {
@@ -219,7 +229,15 @@ antlrcpp::Any EvalVisitor::visitIf_stmt(Python3Parser::If_stmtContext *ctx) {
     printf("visitIf_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    auto testVector = ctx->test();
+    auto suiteVector = ctx->suite();
+    for (int i = 0; i < testVector.size(); ++i) {
+        if (visitTest(testVector[i]).as<BasicVariable>().getBool())
+            visitSuite(suiteVector[i]);
+        else break;
+    }
+    if (ctx->ELSE()) visitSuite(suiteVector.back());
+    return nullptr;
 }
 
 antlrcpp::Any EvalVisitor::visitWhile_stmt(Python3Parser::While_stmtContext *ctx) {
@@ -227,7 +245,13 @@ antlrcpp::Any EvalVisitor::visitWhile_stmt(Python3Parser::While_stmtContext *ctx
     printf("visitWhile_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    while (visitTest(ctx->test()).as<BasicVariable>().getBool()) {
+        antlrcpp::Any suiteReturn = visitSuite(ctx->suite());
+        if (!suiteReturn.is<int>()) {// return 0 即为正常返回
+            
+        }
+    }
+    return nullptr;
 }
 
 antlrcpp::Any EvalVisitor::visitSuite(Python3Parser::SuiteContext *ctx) {
