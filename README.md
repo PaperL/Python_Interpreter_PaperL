@@ -1,26 +1,35 @@
-# Python Interpreter
+# PaperL's Python Interpreter
 
 ## 题面
 
 [acrazyczy/Python-Assignment-2020](https://github.com/acrazyczy/Python-Assignment-2020#python-interpreter)
 
-## 类
+## 源代码结构
 
-### highPrecision
+### main.cpp
+
+##### robust.h
+
+##### Evalvisitor`.h/.cpp`
+
+- Basic.h
+
+  - BasicVariable.cpp
+
+    - HighPrecision`.h/.cpp`
+
+  - pyNamespace.cpp
+
+  - pyFlow.cpp
 
 ## 备忘
 
-- 需要`WSL`进行编译
+- 需要在`Linux`环境下编译
 
-- Atom处判断是变量还是数字
-如果是变量则返回一个`BasicVariable`对象
-该对象标记为未初始化
-返回至`Expr_stmt`
-Expr层确认该句合法（左值是合法左值等）后创建所需变量并操作
+- 拖延日志详见历史`commit`信息
 
-- 除了赋值语句`Expr_stmt`都不能新建变量
-
-- Factor层是正负号
-
-
-
+- 特别感谢 [acrazyczy](https://github.com/acrazyczy), 
+[Amagi_Yukisaki](https://github.com/cmd2001),
+[Lhtie](https://github.com/Lhtie),
+[SiriusNEO](https://github.com/SiriusNEO)
+的帮助！

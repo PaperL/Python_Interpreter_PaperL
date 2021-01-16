@@ -7,8 +7,7 @@
 #include <utility>//pair
 
 #include "Python3BaseVisitor.h"
-#include "BasicVariable.h"
-#include "pyNamespace.h"
+#include "Basic.h"
 #include "robust.h"
 
 class EvalVisitor : public Python3BaseVisitor {

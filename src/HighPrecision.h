@@ -100,7 +100,7 @@ public:
 
     HighPrecision operator>>(const int arg) const;
 
-    HighPrecision operator/(const HighPrecision &arg) const;
+    HighPrecision operator/(const HighPrecision &arg) const;//整除
 
     HighPrecision operator%(const HighPrecision &arg) const;
 

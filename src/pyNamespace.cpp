@@ -2,7 +2,7 @@
 // Created by PaperL on 2021/1/5.
 //
 
-#include "pyNamespace.h"
+#include "Basic.h"
 
 BasicVariable pyNamespace::getVariable(const std::string &name) {
     auto p = globalVariable.find(name);

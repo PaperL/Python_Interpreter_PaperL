@@ -2,7 +2,7 @@
 // Created by PaperL on 2020/12/10.
 //
 
-#include "BasicVariable.h"
+#include "Basic.h"
 
 /*void BasicVariable::strGet(const std::string &arg) {
 
@@ -380,11 +380,55 @@ BasicVariable BasicVariable::operator*(const BasicVariable &arg) const {
 }
 
 BasicVariable BasicVariable::operator/(const BasicVariable &arg) const {
+    if (this->dataType != pyBoolean && this->dataType != pyInteger && this->dataType != pyFloatingPoint
+        && arg.dataType != pyBoolean && arg.dataType != pyInteger && arg.dataType != pyFloatingPoint)
+        throw pyException("Try to Divide Variables of Null/Name/None/String Type");
 
+    if (this->dataType == pyFloatingPoint || arg.dataType == pyFloatingPoint) {
+        if (this->dataType != pyFloatingPoint) {
+            if (arg.getFloat() == 0)
+                throw pyException("Divide Float Zero");
+            BasicVariable temp(*this);
+            return BasicVariable(temp.toFloat().getFloat() / arg.getFloat());
+        } else if (arg.dataType != pyFloatingPoint) {
+            BasicVariable temp(arg);
+            if (temp.toFloat().getFloat() == 0)
+                throw pyException("Divide Float Zero");
+            return BasicVariable((*this).getFloat() / temp.getFloat());
+        } else {
+            if (arg.getFloat() == 0)
+                throw pyException("Divide Float Zero");
+            return BasicVariable(this->getFloat() / arg.getFloat());
+        }
+    } else return this->evenlyDivide(arg);
+}
+
+BasicVariable BasicVariable::evenlyDivide(const BasicVariable &arg) const {
+    if (this->dataType != pyBoolean && this->dataType != pyInteger
+        && arg.dataType != pyBoolean && arg.dataType != pyInteger)
+        throw pyException("Try to Divide Variables of Null/Name/None/Float/String Type");
+
+    if (this->dataType == pyBoolean && arg.dataType == pyBoolean)
+        return BasicVariable(HighPrecision(this->getBool() ? 1 : 0) / HighPrecision(arg.getBool() ? 1 : 0));
+    else if (this->dataType == pyBoolean)
+        return BasicVariable(HighPrecision(this->getBool() ? 1 : 0) / arg.getInt());
+    else if (arg.dataType == pyBoolean)
+        return BasicVariable(this->getInt() / HighPrecision(arg.getBool() ? 1 : 0));
+    else return BasicVariable(this->getInt() / arg.getInt());
 }
 
 BasicVariable BasicVariable::operator%(const BasicVariable &arg) const {
+    if (this->dataType != pyBoolean && this->dataType != pyInteger
+        && arg.dataType != pyBoolean && arg.dataType != pyInteger)
+        throw pyException("Try to Modulo Variables of Null/Name/None/Float/String Type");
 
+    if (this->dataType == pyBoolean && arg.dataType == pyBoolean)
+        return BasicVariable(HighPrecision(this->getBool() ? 1 : 0) % HighPrecision(arg.getBool() ? 1 : 0));
+    else if (this->dataType == pyBoolean)
+        return BasicVariable(HighPrecision(this->getBool() ? 1 : 0) % arg.getInt());
+    else if (arg.dataType == pyBoolean)
+        return BasicVariable(this->getInt() % HighPrecision(arg.getBool() ? 1 : 0));
+    else return BasicVariable(this->getInt() % arg.getInt());
 }
 
 BasicVariable BasicVariable::operator+=(const BasicVariable &arg) {
@@ -404,6 +448,11 @@ BasicVariable BasicVariable::operator*=(const BasicVariable &arg) {
 
 BasicVariable BasicVariable::operator/=(const BasicVariable &arg) {
     (*this) = (*this) / arg;
+    return (*this);
+}
+
+BasicVariable BasicVariable::enenlyDivideEqual(const BasicVariable &arg) {
+    (*this) = this->evenlyDivide(arg);
     return (*this);
 }
 

@@ -102,47 +102,33 @@ antlrcpp::Any EvalVisitor::visitExpr_stmt(Python3Parser::Expr_stmtContext *ctx) 
 
     std::vector<std::vector<BasicVariable> > testlistVector;
     for (auto i:ctx->testlist())
-        testlistVector.emplace_back(visitTestlist(i).as<std::vector<BasicVariable>>());
+        testlistVector.emplace_back(visitTestlist(i).as<std::vector<BasicVariable> >());
 
     if (ctx->augassign()) {
         if (testlistVector.size() != 2)
             throw pyException("Unexpected Error1 in visitExpr_stmt()");
-        auto &leftTestlist = testlistVector.front();
-        auto &rightTestlist = testlistVector.back();
+        const auto &leftTestlist = testlistVector.front();
+        const auto &rightTestlist = testlistVector.back();
         if (leftTestlist.size() != 1 || rightTestlist.size() != 1)
             throw pyException("Unexpected Error2 in visitExpr_stmt()");
 
-        if (ctx->augassign()->ADD_ASSIGN()) {
-            Namespace.assignVariable(leftTestlist.front().getName(),
-                                     Namespace.getValue(leftTestlist.front()) +
-                                     Namespace.getValue(rightTestlist.front()),
-                                     pyNamespace::pyNotDeclare);
-        } else if (ctx->augassign()->SUB_ASSIGN()) {
-            Namespace.assignVariable(leftTestlist.front().getName(),
-                                     Namespace.getValue(leftTestlist.front()) -
-                                     Namespace.getValue(rightTestlist.front()),
-                                     pyNamespace::pyNotDeclare);
-        } else if (ctx->augassign()->MULT_ASSIGN()) {
-            Namespace.assignVariable(leftTestlist.front().getName(),
-                                     Namespace.getValue(leftTestlist.front()) *
-                                     Namespace.getValue(rightTestlist.front()),
-                                     pyNamespace::pyNotDeclare);
-        } else if (ctx->augassign()->DIV_ASSIGN()) {
-            Namespace.assignVariable(leftTestlist.front().getName(),
-                                     Namespace.getValue(leftTestlist.front()) /
-                                     Namespace.getValue(rightTestlist.front()),
-                                     pyNamespace::pyNotDeclare);
-        } else if (ctx->augassign()->IDIV_ASSIGN()) {
-            Namespace.assignVariable(leftTestlist.front().getName(),
-                                     Namespace.getValue(leftTestlist.front()) /
-                                     Namespace.getValue(rightTestlist.front()),
-                                     pyNamespace::pyNotDeclare);//todo 待区分整除
-        } else if (ctx->augassign()->MOD_ASSIGN()) {
-            Namespace.assignVariable(leftTestlist.front().getName(),
-                                     Namespace.getValue(leftTestlist.front()) %
-                                     Namespace.getValue(rightTestlist.front()),
-                                     pyNamespace::pyNotDeclare);
-        }
+        const auto &leftName = leftTestlist.front().getName();
+        const auto &leftValue = Namespace.getValue(leftTestlist.front());
+        const auto &rightValue = Namespace.getValue(rightTestlist.front());
+
+        if (ctx->augassign()->ADD_ASSIGN())
+            Namespace.assignVariable(leftName, leftValue + rightValue, pyNamespace::pyNotDeclare);
+        else if (ctx->augassign()->SUB_ASSIGN())
+            Namespace.assignVariable(leftName, leftValue - rightValue, pyNamespace::pyNotDeclare);
+        else if (ctx->augassign()->MULT_ASSIGN())
+            Namespace.assignVariable(leftName, leftValue * rightValue, pyNamespace::pyNotDeclare);
+        else if (ctx->augassign()->DIV_ASSIGN())
+            Namespace.assignVariable(leftName, leftValue / rightValue, pyNamespace::pyNotDeclare);
+        else if (ctx->augassign()->IDIV_ASSIGN())
+            Namespace.assignVariable(leftName, leftValue.evenlyDivide(rightValue), pyNamespace::pyNotDeclare);
+        else if (ctx->augassign()->MOD_ASSIGN())
+            Namespace.assignVariable(leftName, leftValue % rightValue, pyNamespace::pyNotDeclare);
+
     } else {
         if (testlistVector.size() < 2) {
             // throw pyException("Unexpected Error3 in visitExpr_stmt()");
@@ -229,8 +215,8 @@ antlrcpp::Any EvalVisitor::visitIf_stmt(Python3Parser::If_stmtContext *ctx) {
     printf("visitIf_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    auto testVector = ctx->test();
-    auto suiteVector = ctx->suite();
+    const auto &testVector = ctx->test();
+    const auto &suiteVector = ctx->suite();
     for (int i = 0; i < testVector.size(); ++i) {
         if (visitTest(testVector[i]).as<BasicVariable>().getBool())
             visitSuite(suiteVector[i]);
@@ -247,8 +233,14 @@ antlrcpp::Any EvalVisitor::visitWhile_stmt(Python3Parser::While_stmtContext *ctx
 #endif
     while (visitTest(ctx->test()).as<BasicVariable>().getBool()) {
         antlrcpp::Any suiteReturn = visitSuite(ctx->suite());
-        if (!suiteReturn.is<int>()) {// return 0 即为正常返回
-            
+        if (suiteReturn.is<pyFlow>()) {
+            const auto &flowType = suiteReturn.as<pyFlow>().getType();
+            if (flowType == pyFlow::pyContinue)
+                continue;
+            else if (flowType == pyFlow::pyContinue)
+                break;
+            else if (flowType == pyFlow::pyReturn)
+                return suiteReturn.as<pyFlow>().getReturnValue();
         }
     }
     return nullptr;
@@ -259,7 +251,18 @@ antlrcpp::Any EvalVisitor::visitSuite(Python3Parser::SuiteContext *ctx) {
     printf("visitSuite\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    if (ctx->simple_stmt()) {
+        return visitSimple_stmt(ctx->simple_stmt());
+    } else {// NEWLINE INDENT stmt+ DEDENT
+        const auto &stmtVector = ctx->stmt();
+        antlrcpp::Any stmtReturn;
+        for (auto i:stmtVector) {
+            stmtReturn = visitStmt(i);
+            if (stmtReturn.is<pyFlow>())
+                return stmtReturn.as<pyFlow>().getReturnValue();
+        }
+    }
+    return nullptr;
 }
 
 antlrcpp::Any EvalVisitor::visitTest(Python3Parser::TestContext *ctx) {
@@ -275,7 +278,7 @@ antlrcpp::Any EvalVisitor::visitOr_test(Python3Parser::Or_testContext *ctx) {
     printf("visitOr_test\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    auto and_test_vector = ctx->and_test();
+    const auto &and_test_vector = ctx->and_test();
     if (and_test_vector.empty())//此处不可能为empty
         throw pyException("Get Empty Vector of and_test()");
         //return BasicVariable();
@@ -295,7 +298,7 @@ antlrcpp::Any EvalVisitor::visitAnd_test(Python3Parser::And_testContext *ctx) {
     printf("visitAnd_test\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    auto not_test_vector = ctx->not_test();
+    const auto &not_test_vector = ctx->not_test();
     if (not_test_vector.empty())
         return BasicVariable();
     else if (not_test_vector.size() == 1)
@@ -327,9 +330,9 @@ antlrcpp::Any EvalVisitor::visitComparison(Python3Parser::ComparisonContext *ctx
     printf("visitComparison\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    //todo 应用 comp_op_vector[i]->GREATER_THAN() 而非 getText()
-    auto arith_expr_vector = ctx->arith_expr();
-    auto comp_op_vector = ctx->comp_op();
+    //应用 comp_op_vector[i]->GREATER_THAN() 而非 getText()
+    const auto &arith_expr_vector = ctx->arith_expr();
+    const auto &comp_op_vector = ctx->comp_op();
     if (arith_expr_vector.size() == 1)
         return visitArith_expr(arith_expr_vector.front());
     else if (arith_expr_vector.size() > 1) {//e.g. a<b<c 从前往后(左结合)依次遍历小于号
@@ -378,8 +381,8 @@ antlrcpp::Any EvalVisitor::visitArith_expr(Python3Parser::Arith_exprContext *ctx
     printf("visitArith_expr\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    auto term_vector = ctx->term();
-    auto addorsub_op_vector = ctx->addorsub_op();
+    const auto &term_vector = ctx->term();
+    const auto &addorsub_op_vector = ctx->addorsub_op();
     if (term_vector.size() == 1)
         return visitTerm(term_vector.front());
     else if (term_vector.size() > 1) {//e.g. a+b-c 从前往后(左结合)依次遍历加减号
@@ -413,8 +416,8 @@ antlrcpp::Any EvalVisitor::visitTerm(Python3Parser::TermContext *ctx) {
     printf("visitTerm\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    auto factor_vector = ctx->factor();
-    auto muldivmod_op = ctx->muldivmod_op();
+    const auto &factor_vector = ctx->factor();
+    const auto &muldivmod_op = ctx->muldivmod_op();
     if (factor_vector.size() == 1)
         return visitFactor(factor_vector.front());
     else if (factor_vector.size() > 1) {
@@ -429,9 +432,9 @@ antlrcpp::Any EvalVisitor::visitTerm(Python3Parser::TermContext *ctx) {
             if (sign == "*") {
                 leftValue *= rightValue;
             } else if (sign == "/") {
-                leftValue /= rightValue;//todo 此处相关函数待实现
-            } else if (sign == "//") {
                 leftValue /= rightValue;
+            } else if (sign == "//") {
+                leftValue.evenlyDivide(rightValue);
             } else if (sign == "%") {
                 leftValue %= rightValue;
             } else throw pyException("Unexpected Error1 in visitTerm()");
@@ -617,7 +620,7 @@ antlrcpp::Any EvalVisitor::visitArglist(Python3Parser::ArglistContext *ctx) {
     std::cout << ctx->getText() << std::endl;
 #endif
     std::vector<std::pair<BasicVariable, BasicVariable> > arglist;
-    auto argument_vector = ctx->argument();
+    const auto &argument_vector = ctx->argument();
     for (auto i:argument_vector)
         arglist.emplace_back(visitArgument(i));
     return arglist;
@@ -628,7 +631,7 @@ antlrcpp::Any EvalVisitor::visitArgument(Python3Parser::ArgumentContext *ctx) {
     printf("visitArgument\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    auto test_vector = ctx->test();
+    const auto &test_vector = ctx->test();
     if (test_vector.size() == 1)
         return std::make_pair(BasicVariable(), visitTest(ctx->test().front()).as<BasicVariable>());
     else if (test_vector.size() == 2)

@@ -8,6 +8,7 @@
 using namespace antlr4;
 
 int main(int argc, const char *argv[]) {
+    // 运行指令 python_interpreter < 1.in > 1.out
     ANTLRInputStream input(std::cin);
     Python3Lexer lexer(&input);
     CommonTokenStream tokens(&lexer);
@@ -21,7 +22,9 @@ int main(int argc, const char *argv[]) {
         perror(exception.errInfo.c_str());
     }
 
-    /*const std::string filepath=argv[1];
+    /* 旧版本 main 函数内容
+     * 运行指令如 python_interpreter 1.in
+    const std::string filepath=argv[1];
     std::ifstream ifs;
     ifs.open(filepath);
     if (!ifs.good()) {

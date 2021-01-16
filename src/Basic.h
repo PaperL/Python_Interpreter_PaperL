@@ -6,7 +6,6 @@
 #define PYTHON_INTERPRETER_BASIC_H
 
 
-
 #include <iostream>
 
 #include "robust.h"
@@ -22,11 +21,6 @@
 #include <stack>
 
 #include "Python3BaseVisitor.h"
-
-typedef std::map<std::string, BasicVariable> variableMap;
-typedef std::map<std::string, Python3Parser::FuncdefContext *> functionMap;
-typedef std::stack<variableMap> variableStack;
-
 
 //=================================
 //========  BasicVariable  ========
@@ -131,6 +125,8 @@ public:
 
     BasicVariable operator/(const BasicVariable &arg) const;
 
+    BasicVariable evenlyDivide(const BasicVariable &arg) const;
+
     BasicVariable operator%(const BasicVariable &arg) const;
 
     BasicVariable operator+=(const BasicVariable &arg);
@@ -140,6 +136,8 @@ public:
     BasicVariable operator*=(const BasicVariable &arg);
 
     BasicVariable operator/=(const BasicVariable &arg);
+
+    BasicVariable enenlyDivideEqual(const BasicVariable &arg);
 
     BasicVariable operator%=(const BasicVariable &arg);
 
@@ -163,6 +161,10 @@ public:
 //=================================
 //=========  pyNamespace  =========
 //=================================
+
+typedef std::map<std::string, BasicVariable> variableMap;
+typedef std::map<std::string, Python3Parser::FuncdefContext *> functionMap;
+typedef std::stack<variableMap> variableStack;
 
 class pyNamespace {
 private:
@@ -209,11 +211,14 @@ private:
 public:
     explicit pyFlow(flowType type);
 
-    explicit pyFlow(flowType type,const BasicVariable &arg);
+    explicit pyFlow(flowType type, const BasicVariable &arg);
 
     ~pyFlow();
-};
 
+    flowType getType() const;
+
+    BasicVariable getReturnValue() const;
+};
 
 
 #endif //PYTHON_INTERPRETER_BASIC_H

@@ -350,7 +350,7 @@ HighPrecision HighPrecision::operator>>(const int arg) const {
 
 HighPrecision HighPrecision::operator/(const HighPrecision &arg) const {
     if (arg.isZero())
-        throw pyException("Divide Zero");
+        throw pyException("Divide Integer Zero");
     if (this->isZero())
         return highPrecisionZero;
     if (digitLess((*this), arg))return highPrecisionZero;
@@ -391,7 +391,7 @@ HighPrecision HighPrecision::operator/(const HighPrecision &arg) const {
 
 HighPrecision HighPrecision::operator%(const HighPrecision &arg) const {
     if (arg.isZero())
-        throw pyException("Divide Zero");
+        throw pyException("Modulo Integer Zero");
     if (this->isZero())
         return highPrecisionZero;
     if (digitLess((*this), arg))return (*this);
