@@ -162,21 +162,31 @@ public:
 //=========  pyNamespace  =========
 //=================================
 
-typedef std::map<std::string, BasicVariable> variableMap;
-typedef std::map<std::string, Python3Parser::FuncdefContext *> functionMap;
-typedef std::stack<variableMap> variableStack;
-
 class pyNamespace {
 private:
-    //functionMap stdFunction;
-    functionMap userFunction;
-    variableMap globalVariable;
-    variableStack localVariableStack;
-public:
+    typedef std::map<std::string, BasicVariable> variableMap;
+    typedef std::vector<std::pair<BasicVariable, BasicVariable> > parameterVector;
 
+    class functionInfo {
+    public:
+        Python3Parser::FuncdefContext *functionCtx;
+        variableMap functionParameter;
+
+        functionInfo(Python3Parser::FuncdefContext *funcCtx, const parameterVector &parameters);
+    };
+
+    typedef std::map<std::string, functionInfo> functionMap;
+    typedef std::vector<variableMap> variableVector;
+
+    functionMap userFunction;
+    variableVector VariableStack;
+
+public:
     enum declareType {
         pyNotDeclare, pyGlobal, pyLocal
     };
+
+    pyNamespace();
 
     BasicVariable getVariable(const std::string &name);
 
@@ -185,11 +195,14 @@ public:
     //赋值
 
     BasicVariable getValue(const BasicVariable &arg);
+    //若为 pyName 类型则获取其值, 否则返回原参数
 
+    void defineFunction(const std::string &name, Python3Parser::FuncdefContext *funcCtx,
+                        const parameterVector &parameters = parameterVector());
 
-    void defineFunction(const std::string &name, Python3Parser::FuncdefContext *arg);
+    Python3Parser::FuncdefContext *loadFunction(const std::string &name);
 
-    Python3Parser::FuncdefContext *getFunction(const std::string &name);
+    void unloadFunction();
 };
 
 

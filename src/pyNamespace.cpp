@@ -4,37 +4,53 @@
 
 #include "Basic.h"
 
+pyNamespace::functionInfo::functionInfo(Python3Parser::FuncdefContext *funcCtx, const parameterVector &parameters)
+        : functionCtx(funcCtx) {
+    for(auto i:parameters)
+        functionParameter.insert(std::make_pair(i.first.getName(),i.second));
+}
+
+pyNamespace::pyNamespace() { VariableStack.emplace_back(variableMap()); }
+
 BasicVariable pyNamespace::getVariable(const std::string &name) {
+    auto &globalVariable = VariableStack.front();// VariableStack 底层为全局变量
     auto p = globalVariable.find(name);
     if (p != globalVariable.end())
         return p->second;
 
-    if (!localVariableStack.empty()) {//若为局部变量必在localVariableStack顶部
-        p = localVariableStack.top().find(name);
-        if (p != localVariableStack.top().end())
+    if (VariableStack.size() > 1) {
+        auto &localVariableStack = VariableStack.back();
+        p = localVariableStack.find(name);
+        if (p != localVariableStack.end())
             return p->second;
     }
-
     throw pyException("Variable \"" + name + "\" Not Found (getVariable)");
 }
 
 void pyNamespace::assignVariable(const std::string &name, const BasicVariable &arg, declareType type) {
-    auto p = globalVariable.find(name);
-    if (p != globalVariable.end())
-        p->second = arg;
+    auto &globalVariable = VariableStack.front();
 
-    if (!localVariableStack.empty()) {//若为局部变量必在localVariableStack顶部
-        p = localVariableStack.top().find(name);
-        if (p != localVariableStack.top().end())
+    auto p = globalVariable.find(name);
+    if (p != globalVariable.end()) {
+        p->second = arg;
+        return;
+    }
+
+    if (VariableStack.size() > 1) {
+        auto &localVariableStack = VariableStack.back();
+        p = localVariableStack.find(name);
+        if (p != localVariableStack.end()) {
             p->second = arg;
+            return;
+        }
     }
 
     if (type == pyNotDeclare)
         throw pyException("Variable \"" + name + "\" Not Found (assignVariable)");
     else if (type == pyGlobal)
-        globalVariable.insert({name, arg});
+        globalVariable.insert(std::make_pair(name, arg));
     else if (type == pyLocal)
-        localVariableStack.top().insert({name, arg});
+        VariableStack.back().insert(std::make_pair(name, arg));
 }
 
 BasicVariable pyNamespace::getValue(const BasicVariable &arg) {
@@ -45,26 +61,27 @@ BasicVariable pyNamespace::getValue(const BasicVariable &arg) {
     else return arg;
 }
 
-void pyNamespace::defineFunction(const std::string &name, Python3Parser::FuncdefContext *arg) {
-    /*auto p = stdFunction.find(name);
-    if (p != stdFunction.end())
-        throw pyException("Redifine Standard Function \"" + name + '\"');*/
-
+void pyNamespace::defineFunction(const std::string &name, Python3Parser::FuncdefContext *funcCtx,
+                                 const parameterVector &parameters) {
     auto p = userFunction.find(name);
     if (p != userFunction.end())
         throw pyException("Redifine Function \"" + name + '\"');
 
-    userFunction.insert({name, arg});
+    userFunction.insert(std::make_pair(name, functionInfo(funcCtx, parameters)));
 }
 
-Python3Parser::FuncdefContext *pyNamespace::getFunction(const std::string &name) {
-    /*auto p = stdFunction.find(name);
-    if (p != stdFunction.end())
-        return p->second;*/
-
+Python3Parser::FuncdefContext *pyNamespace::loadFunction(const std::string &name) {
     auto p = userFunction.find(name);
-    if (p != userFunction.end())
-        return p->second;
+    if (p != userFunction.end()) {
+        // 进入函数时将参数列表作为局部变量空间
+        VariableStack.emplace_back(p->second.functionParameter);
+        return p->second.functionCtx;
+    }
 
     throw pyException("Function \"" + name + "\" Not Found");
+}
+
+void pyNamespace::unloadFunction() {
+    //if(VariableStack.size()>1)
+    VariableStack.pop_back();
 }

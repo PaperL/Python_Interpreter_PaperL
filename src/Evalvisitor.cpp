@@ -167,8 +167,13 @@ antlrcpp::Any EvalVisitor::visitFlow_stmt(Python3Parser::Flow_stmtContext *ctx) 
     printf("visitFlow_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-
-    return visitChildren(ctx);
+    if (ctx->break_stmt())
+        return pyFlow(pyFlow::pyBreak);
+    else if (ctx->continue_stmt())
+        return pyFlow(pyFlow::pyContinue);
+    else if (ctx->return_stmt())
+        return visitReturn_stmt(ctx->return_stmt());
+    else throw pyException("Unexpected Error in visitFlow_stmt()");
 }
 
 antlrcpp::Any EvalVisitor::visitBreak_stmt(Python3Parser::Break_stmtContext *ctx) {
@@ -192,7 +197,9 @@ antlrcpp::Any EvalVisitor::visitReturn_stmt(Python3Parser::Return_stmtContext *c
     printf("visitReturn_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    if (ctx->testlist())
+        return visitTestlist(ctx->testlist());
+    else return BasicVariable(BasicVariable::setNone);
 }
 
 antlrcpp::Any EvalVisitor::visitCompound_stmt(Python3Parser::Compound_stmtContext *ctx) {
@@ -258,8 +265,11 @@ antlrcpp::Any EvalVisitor::visitSuite(Python3Parser::SuiteContext *ctx) {
         antlrcpp::Any stmtReturn;
         for (auto i:stmtVector) {
             stmtReturn = visitStmt(i);
-            if (stmtReturn.is<pyFlow>())
-                return stmtReturn.as<pyFlow>().getReturnValue();
+            if (stmtReturn.is<pyFlow>()) {
+                if (stmtReturn.as<pyFlow>().getType() == pyFlow::pyReturn)
+                    return stmtReturn.as<pyFlow>().getReturnValue();
+                else throw pyException("Illegal Break/Continue");
+            }
         }
     }
     return nullptr;
@@ -608,9 +618,21 @@ antlrcpp::Any EvalVisitor::visitTestlist(Python3Parser::TestlistContext *ctx)
     printf("visitTestlist\n");
     std::cout << ctx->getText() << std::endl;
 #endif
+    auto testVector = ctx->test();
+    antlrcpp::Any testReturn;
     std::vector<BasicVariable> retVector;
-    for (auto i:ctx->test())
-        retVector.emplace_back(visitTest(i).as<BasicVariable>());
+    for (auto i:testVector) {
+        testReturn = visitTest(i);
+        if (testReturn.is<BasicVariable>())
+            retVector.emplace_back(testReturn.as<BasicVariable>());
+        //todo 若test是个testlist，则等价于多个test
+        else if (testReturn.is<std::vector<BasicVariable> >()) {
+            const std::vector<BasicVariable> &testReturnVector
+                    = testReturn.as<std::vector<BasicVariable> >();
+            for (const auto &j:testReturnVector)
+                retVector.emplace_back(j);
+        }
+    }
     return retVector;
 }
 
@@ -633,9 +655,9 @@ antlrcpp::Any EvalVisitor::visitArgument(Python3Parser::ArgumentContext *ctx) {
 #endif
     const auto &test_vector = ctx->test();
     if (test_vector.size() == 1)
-        return std::make_pair(BasicVariable(), visitTest(ctx->test().front()).as<BasicVariable>());
+        return std::make_pair(BasicVariable(), visitTest(test_vector.front()).as<BasicVariable>());
     else if (test_vector.size() == 2)
-        return std::make_pair(visitTest(ctx->test()[0]).as<BasicVariable>(),
-                              visitTest(ctx->test()[1]).as<BasicVariable>());
+        return std::make_pair(visitTest(test_vector.front()).as<BasicVariable>(),
+                              visitTest(test_vector.back()).as<BasicVariable>());
     else throw pyException("Argument with 0 or more than 2 Test");
 }
