@@ -163,21 +163,22 @@ public:
 //=================================
 
 class pyNamespace {
-private:
+public:
     typedef std::map<std::string, BasicVariable> variableMap;
-    typedef std::vector<std::pair<BasicVariable, BasicVariable> > parameterVector;
+    typedef std::vector<std::pair<std::string, BasicVariable> > parameterVector;
 
     class functionInfo {
     public:
-        Python3Parser::FuncdefContext *functionCtx;
+        Python3Parser::SuiteContext *functionSuite;
         variableMap functionParameter;
 
-        functionInfo(Python3Parser::FuncdefContext *funcCtx, const parameterVector &parameters);
+        functionInfo(Python3Parser::SuiteContext *funcCtx, const parameterVector &parameters);
     };
 
     typedef std::map<std::string, functionInfo> functionMap;
     typedef std::vector<variableMap> variableVector;
 
+private:
     functionMap userFunction;
     variableVector VariableStack;
 
@@ -197,10 +198,10 @@ public:
     BasicVariable getValue(const BasicVariable &arg);
     //若为 pyName 类型则获取其值, 否则返回原参数
 
-    void defineFunction(const std::string &name, Python3Parser::FuncdefContext *funcCtx,
+    void defineFunction(const std::string &name, Python3Parser::SuiteContext *funcCtx,
                         const parameterVector &parameters = parameterVector());
 
-    Python3Parser::FuncdefContext *loadFunction(const std::string &name);
+    Python3Parser::SuiteContext *loadFunction(const std::string &name);
 
     void unloadFunction();
 };

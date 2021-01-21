@@ -15,9 +15,10 @@ antlrcpp::Any EvalVisitor::visitFuncdef(Python3Parser::FuncdefContext *ctx) {
     printf("visitFuncdef\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    //todo 保存函数名
-    //函数体，以及函数栈空间（内容为参数表）
-    return visitChildren(ctx);
+    //const auto &parameters = visitParameters(ctx->parameters()).as<pyNamespace::parameterVector>();
+    Namespace.defineFunction(ctx->NAME()->getText(), ctx->suite(),
+                             visitParameters(ctx->parameters()).as<pyNamespace::parameterVector>());
+    return nullptr;
 }
 
 antlrcpp::Any EvalVisitor::visitParameters(Python3Parser::ParametersContext *ctx) {
@@ -25,7 +26,9 @@ antlrcpp::Any EvalVisitor::visitParameters(Python3Parser::ParametersContext *ctx
     printf("visitParameters\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    if (ctx->typedargslist())
+        return visitTypedargslist(ctx->typedargslist());
+    else return pyNamespace::parameterVector();
 }
 
 antlrcpp::Any EvalVisitor::visitTypedargslist(Python3Parser::TypedargslistContext *ctx) {
@@ -33,7 +36,18 @@ antlrcpp::Any EvalVisitor::visitTypedargslist(Python3Parser::TypedargslistContex
     printf("visitTypedargslist\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    const auto &tfpdefVector = ctx->tfpdef();
+    const auto &testVector = ctx->test();
+    pyNamespace::parameterVector parameters;
+    // 有默认值的变量必在最后
+    const auto tfpdefNumber = tfpdefVector.size();
+    const auto testNumber = testVector.size();
+    for (int i = 0, boundary = tfpdefNumber - testNumber; i < boundary; ++i)
+        parameters.emplace_back(std::make_pair(tfpdefVector[i]->NAME()->getText(), BasicVariable()));
+    for (int i = 0, boundary = testNumber; i < boundary; ++i)
+        parameters.emplace_back(std::make_pair(
+                tfpdefVector[tfpdefNumber - testNumber + i]->NAME()->getText(), BasicVariable()));
+    return parameters;
 }
 
 antlrcpp::Any EvalVisitor::visitTfpdef(Python3Parser::TfpdefContext *ctx) {
@@ -208,13 +222,12 @@ antlrcpp::Any EvalVisitor::visitCompound_stmt(Python3Parser::Compound_stmtContex
     std::cout << ctx->getText() << std::endl;
 #endif
     if (ctx->if_stmt())
-        visitIf_stmt(ctx->if_stmt());
+        return visitIf_stmt(ctx->if_stmt());
     else if (ctx->while_stmt())
-        visitWhile_stmt(ctx->while_stmt());
+        return visitWhile_stmt(ctx->while_stmt());
     else if (ctx->funcdef())
-        visitFuncdef(ctx->funcdef());
+        return visitFuncdef(ctx->funcdef());
     else throw pyException("Unexpected error in visitCompound_stmt()");
-    return nullptr;
 }
 
 antlrcpp::Any EvalVisitor::visitIf_stmt(Python3Parser::If_stmtContext *ctx) {
@@ -226,11 +239,11 @@ antlrcpp::Any EvalVisitor::visitIf_stmt(Python3Parser::If_stmtContext *ctx) {
     const auto &suiteVector = ctx->suite();
     for (int i = 0; i < testVector.size(); ++i) {
         if (visitTest(testVector[i]).as<BasicVariable>().getBool())
-            visitSuite(suiteVector[i]);
+            return visitSuite(suiteVector[i]);
         else break;
     }
-    if (ctx->ELSE()) visitSuite(suiteVector.back());
-    return nullptr;
+    if (ctx->ELSE()) return visitSuite(suiteVector.back());
+    throw pyException("Unexpected Error in visitIf_stmt()");
 }
 
 antlrcpp::Any EvalVisitor::visitWhile_stmt(Python3Parser::While_stmtContext *ctx) {
@@ -238,17 +251,16 @@ antlrcpp::Any EvalVisitor::visitWhile_stmt(Python3Parser::While_stmtContext *ctx
     printf("visitWhile_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
+    antlrcpp::Any suiteReturn;
     while (visitTest(ctx->test()).as<BasicVariable>().getBool()) {
-        antlrcpp::Any suiteReturn = visitSuite(ctx->suite());
+        suiteReturn = visitSuite(ctx->suite());
         if (suiteReturn.is<pyFlow>()) {
-            const auto &flowType = suiteReturn.as<pyFlow>().getType();
-            if (flowType == pyFlow::pyContinue)
-                continue;
-            else if (flowType == pyFlow::pyContinue)
-                break;
-            else if (flowType == pyFlow::pyReturn)
-                return suiteReturn.as<pyFlow>().getReturnValue();
-        }
+            const auto &ret = suiteReturn.as<pyFlow>();
+            if (ret.getType() == pyFlow::pyContinue) continue;
+            else if (ret.getType() == pyFlow::pyBreak) break;
+            else if (ret.getType() == pyFlow::pyReturn)
+                return ret;
+        } else throw pyException("Unexpected Suite Return in visitWhile_stmt()");
     }
     return nullptr;
 }
@@ -258,18 +270,15 @@ antlrcpp::Any EvalVisitor::visitSuite(Python3Parser::SuiteContext *ctx) {
     printf("visitSuite\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    if (ctx->simple_stmt()) {
+    if (ctx->simple_stmt())
         return visitSimple_stmt(ctx->simple_stmt());
-    } else {// NEWLINE INDENT stmt+ DEDENT
+    else {// NEWLINE INDENT stmt+ DEDENT
         const auto &stmtVector = ctx->stmt();
-        antlrcpp::Any stmtReturn;
         for (auto i:stmtVector) {
-            stmtReturn = visitStmt(i);
-            if (stmtReturn.is<pyFlow>()) {
-                if (stmtReturn.as<pyFlow>().getType() == pyFlow::pyReturn)
-                    return stmtReturn.as<pyFlow>().getReturnValue();
-                else throw pyException("Illegal Break/Continue");
-            }
+            const antlrcpp::Any &stmtReturn = visitStmt(i);
+            if (stmtReturn.is<pyFlow>())
+                return stmtReturn.as<pyFlow>();
+            else throw pyException("Unexpected Suite Return");
         }
     }
     return nullptr;
@@ -625,7 +634,7 @@ antlrcpp::Any EvalVisitor::visitTestlist(Python3Parser::TestlistContext *ctx)
         testReturn = visitTest(i);
         if (testReturn.is<BasicVariable>())
             retVector.emplace_back(testReturn.as<BasicVariable>());
-        //todo 若test是个testlist，则等价于多个test
+            //todo 若test是个testlist，则等价于多个test
         else if (testReturn.is<std::vector<BasicVariable> >()) {
             const std::vector<BasicVariable> &testReturnVector
                     = testReturn.as<std::vector<BasicVariable> >();

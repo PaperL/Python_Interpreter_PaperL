@@ -4,10 +4,10 @@
 
 #include "Basic.h"
 
-pyNamespace::functionInfo::functionInfo(Python3Parser::FuncdefContext *funcCtx, const parameterVector &parameters)
-        : functionCtx(funcCtx) {
+pyNamespace::functionInfo::functionInfo(Python3Parser::SuiteContext *funcSuite, const parameterVector &parameters)
+        : functionSuite(funcSuite) {
     for(auto i:parameters)
-        functionParameter.insert(std::make_pair(i.first.getName(),i.second));
+        functionParameter.insert(std::make_pair(i.first,i.second));
 }
 
 pyNamespace::pyNamespace() { VariableStack.emplace_back(variableMap()); }
@@ -61,7 +61,7 @@ BasicVariable pyNamespace::getValue(const BasicVariable &arg) {
     else return arg;
 }
 
-void pyNamespace::defineFunction(const std::string &name, Python3Parser::FuncdefContext *funcCtx,
+void pyNamespace::defineFunction(const std::string &name, Python3Parser::SuiteContext *funcCtx,
                                  const parameterVector &parameters) {
     auto p = userFunction.find(name);
     if (p != userFunction.end())
@@ -70,12 +70,12 @@ void pyNamespace::defineFunction(const std::string &name, Python3Parser::Funcdef
     userFunction.insert(std::make_pair(name, functionInfo(funcCtx, parameters)));
 }
 
-Python3Parser::FuncdefContext *pyNamespace::loadFunction(const std::string &name) {
+Python3Parser::SuiteContext *pyNamespace::loadFunction(const std::string &name) {
     auto p = userFunction.find(name);
     if (p != userFunction.end()) {
         // 进入函数时将参数列表作为局部变量空间
         VariableStack.emplace_back(p->second.functionParameter);
-        return p->second.functionCtx;
+        return p->second.functionSuite;
     }
 
     throw pyException("Function \"" + name + "\" Not Found");
