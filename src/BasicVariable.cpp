@@ -341,21 +341,23 @@ BasicVariable BasicVariable::operator*(const BasicVariable &arg) const {
         throw pyException("Try to Multiply Variables of Null/Name/None Type");
 
     if (this->dataType == pyString || arg.dataType == pyString) {
-        if (this->dataType == pyString && arg.dataType != pyFloatingPoint) {
-            BasicVariable ret("");
+        if (this->dataType == pyString && (arg.dataType == pyBoolean || arg.dataType == pyInteger)) {
+            BasicVariable boundary = arg;
+            boundary.toInt();
+            BasicVariable ret((std::string()));
             for (BasicVariable i(HighPrecision(0));
-                 *(i.valInteger) < *(arg.valInteger);
-                 *(i.valInteger) = *(i.valInteger) + HighPrecision(1)) {//todo 可优化常数(HighPrecision++)
+                 i.getInt() < boundary.getInt();
+                 i = i + BasicVariable(HighPrecision(1)))//todo 可优化常数(HighPrecision++)
                 ret += (*this);
-            }
             return ret;
-        } else if (this->dataType != pyFloatingPoint && arg.dataType == pyString) {
-            BasicVariable ret("");
+        } else if (arg.dataType == pyString && (this->dataType == pyBoolean || this->dataType == pyInteger)) {
+            BasicVariable boundary = (*this);
+            boundary.toInt();
+            BasicVariable ret((std::string()));
             for (BasicVariable i(HighPrecision(0));
-                 *(i.valInteger) < *(this->valInteger);
-                 *(i.valInteger) = *(i.valInteger) + HighPrecision(1)) {//todo 可优化常数(HighPrecision++)
+                 i.getInt() < boundary.getInt();
+                 i = i + BasicVariable(HighPrecision(1)))
                 ret += arg;
-            }
             return ret;
         } else throw pyException("Try to Multiply String Variable with Float/String Type Variable");
     }

@@ -55,7 +55,8 @@ antlrcpp::Any EvalVisitor::visitTfpdef(Python3Parser::TfpdefContext *ctx) {
     printf("visitTfpdef\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    return nullptr;
+    //return visitChildren(ctx);
 }
 
 antlrcpp::Any EvalVisitor::visitStmt(Python3Parser::StmtContext *ctx) {
@@ -111,8 +112,8 @@ antlrcpp::Any EvalVisitor::visitExpr_stmt(Python3Parser::Expr_stmtContext *ctx) 
 
     //visitTestlist(ctx->testlist().back()).as<
     //return visitChildren(ctx);*/
-    //todo 不知道怎么提前判断左值
-    // 可以考虑 BasicVaribal 加一 flag 用于保护 pyName 不被转为实值
+    // 不知道怎么提前判断左值
+    // 可以考虑 BasicVariable 加一 flag 用于保护 pyName 不被转为实值
 
     std::vector<std::vector<BasicVariable> > testlistVector;
     for (auto i:ctx->testlist())
@@ -146,7 +147,6 @@ antlrcpp::Any EvalVisitor::visitExpr_stmt(Python3Parser::Expr_stmtContext *ctx) 
     } else {
         if (testlistVector.size() < 2) {
             // throw pyException("Unexpected Error3 in visitExpr_stmt()");
-            // DO NOTHING
             // 函数开头已经visit过了
             return nullptr;
         } else {
@@ -173,7 +173,8 @@ antlrcpp::Any EvalVisitor::visitAugassign(Python3Parser::AugassignContext *ctx) 
     printf("visitAugassign\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    return nullptr;
+    //return visitChildren(ctx);
 }
 
 antlrcpp::Any EvalVisitor::visitFlow_stmt(Python3Parser::Flow_stmtContext *ctx) {
@@ -195,7 +196,8 @@ antlrcpp::Any EvalVisitor::visitBreak_stmt(Python3Parser::Break_stmtContext *ctx
     printf("visitBreak_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    return nullptr;
+    //return visitChildren(ctx);
 }
 
 antlrcpp::Any EvalVisitor::visitContinue_stmt(Python3Parser::Continue_stmtContext *ctx) {
@@ -203,7 +205,8 @@ antlrcpp::Any EvalVisitor::visitContinue_stmt(Python3Parser::Continue_stmtContex
     printf("visitContinue_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    return visitChildren(ctx);
+    return nullptr;
+    //return visitChildren(ctx);
 }
 
 antlrcpp::Any EvalVisitor::visitReturn_stmt(Python3Parser::Return_stmtContext *ctx) {
@@ -212,8 +215,8 @@ antlrcpp::Any EvalVisitor::visitReturn_stmt(Python3Parser::Return_stmtContext *c
     std::cout << ctx->getText() << std::endl;
 #endif
     if (ctx->testlist())
-        return visitTestlist(ctx->testlist());
-    else return BasicVariable(BasicVariable::setNone);
+        return pyFlow(pyFlow::pyReturn, visitTestlist(ctx->testlist()));
+    else return pyFlow(pyFlow::pyReturn, BasicVariable(BasicVariable::setNone));
 }
 
 antlrcpp::Any EvalVisitor::visitCompound_stmt(Python3Parser::Compound_stmtContext *ctx) {
@@ -240,10 +243,10 @@ antlrcpp::Any EvalVisitor::visitIf_stmt(Python3Parser::If_stmtContext *ctx) {
     for (int i = 0; i < testVector.size(); ++i) {
         if (visitTest(testVector[i]).as<BasicVariable>().getBool())
             return visitSuite(suiteVector[i]);
-        else break;
     }
     if (ctx->ELSE()) return visitSuite(suiteVector.back());
-    throw pyException("Unexpected Error in visitIf_stmt()");
+    return nullptr;
+    //throw pyException("Unexpected Error in visitIf_stmt()");
 }
 
 antlrcpp::Any EvalVisitor::visitWhile_stmt(Python3Parser::While_stmtContext *ctx) {
@@ -260,7 +263,7 @@ antlrcpp::Any EvalVisitor::visitWhile_stmt(Python3Parser::While_stmtContext *ctx
             else if (ret.getType() == pyFlow::pyBreak) break;
             else if (ret.getType() == pyFlow::pyReturn)
                 return ret;
-        } else throw pyException("Unexpected Suite Return in visitWhile_stmt()");
+        }// else throw pyException("Unexpected Suite Return in visitWhile_stmt()");
     }
     return nullptr;
 }
@@ -278,7 +281,7 @@ antlrcpp::Any EvalVisitor::visitSuite(Python3Parser::SuiteContext *ctx) {
             const antlrcpp::Any &stmtReturn = visitStmt(i);
             if (stmtReturn.is<pyFlow>())
                 return stmtReturn.as<pyFlow>();
-            else throw pyException("Unexpected Suite Return");
+            //else throw pyException("Unexpected Suite Return");
         }
     }
     return nullptr;
@@ -497,9 +500,9 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
     std::cout << ctx->getText() << std::endl;
 #endif
     if (!ctx->trailer()) return visitAtom(ctx->atom());
-        //非函数则直接返回Atom（BasicVariable），可以是pyName类型的BasicVariable
+        //非函数则直接返回BasicVariable Atom，可以是pyName类型的BasicVariable
     else {
-        const auto tempAtom(visitAtom(ctx->atom()).as<BasicVariable>());
+        const auto tempAtom = visitAtom(ctx->atom()).as<BasicVariable>();
         std::vector<std::pair<BasicVariable, BasicVariable> > arglist_vector = visitTrailer(ctx->trailer());
         //if (tempAtom.getType() != BasicVariable::pyName)
         //    throw pyException("Atom for Function Name is not pyName Type BasicVariable");
@@ -507,12 +510,12 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
         if (tempAtom.getName() == "print") {
             if (!arglist_vector.empty()) {
                 for (auto i = arglist_vector.begin(); i != arglist_vector.end() - 1; ++i)
-                    if (i->first.isNull()) {
+                    if (i->first.isNull())
                         std::cout << Namespace.getValue(i->second) << ' ';
-                    } else throw pyException("Call print() with Keyword Argument");
+                    else throw pyException("Call print() with Keyword Argument");
                 std::cout << Namespace.getValue(arglist_vector.back().second) << std::endl;
             } else std::cout << std::endl;
-            return BasicVariable();
+            return BasicVariable();// pyNull
 
         } else if (tempAtom.getName() == "bool") {
             if (arglist_vector.empty())
@@ -541,39 +544,24 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
 
         } else if (tempAtom.getName() == "str") {
             if (arglist_vector.empty())
-                return BasicVariable("");
+                return BasicVariable((std::string()));
             else if (arglist_vector.size() == 1) {
                 BasicVariable temp(Namespace.getValue(arglist_vector.front().second));
                 return temp.toStr();
             } else throw pyException("str() Get more than 1 Argument");
 
-
         } else {
-            Namespace.getFunction(tempAtom.getName());
-            /*
-            if (ctx->trailer()->arglist() != nullptr) {
-                bool positionalArgument = true;
-                //positional arg,即为c++函数参数表中内容,不可出现在keyword arg后
-                //keyword arg,形如"Name = Value"代表指定参数的参数值
-                for (auto i:ctx->trailer()->arglist()->argument()) {
-                    if (positionalArgument) {
-                        if (i->test().size() == 2)
-                            positionalArgument = false;
-                    } else if (i->test().size() == 1)
-                        throw pyException("Function Positional Argument Follow Keyword Argument");
-
-                    if (i->test().size() == 1) {
-
-                    } else {//i->test().size() == 2
-
-                    }
-                    tret = visitTest(ctx->trailer()->arglist()->argument()[i]->test()[0]);
-                    if (!tret.is<std::vector<dtype> >()) continue;
-                    std::vector<dtype> tmp = tret.as<std::vector<dtype> >();
-                    for (auto x : tmp) ret.push_back(x);
-                }
-            }*/
-            return BasicVariable();
+            // 执行函数
+            const auto &suiteCtx = Namespace.loadFunction(tempAtom.getName());
+            const antlrcpp::Any &suiteReturn = visitSuite(suiteCtx);
+            BasicVariable ret;
+            if (suiteReturn.is<pyFlow>()) {
+                if (suiteReturn.as<pyFlow>().getType() == pyFlow::pyReturn)
+                    ret = suiteReturn.as<pyFlow>().getReturnValue();
+                else throw pyException("Function Stop Because Continue/Break");
+            }
+            Namespace.unloadFunction();
+            return ret;
         }
     }
 }
@@ -605,8 +593,9 @@ antlrcpp::Any EvalVisitor::visitAtom(Python3Parser::AtomContext *ctx) {
             return BasicVariable(HighPrecision(ctx->getText()));
         else return BasicVariable(stod(ctx->NUMBER()->getText()));//todo 此处stod
     } else if (!ctx->STRING().empty()) {
-        BasicVariable temps("");
-        for (auto i : ctx->STRING())// 字符串首末有单/双引号且可以连续出现
+        const auto &stringVector = ctx->STRING();
+        BasicVariable temps((std::string()));//todo 此处 "" 会构造 pyBoolean 类型对象
+        for (auto i : stringVector)// 字符串首末有单/双引号且可以连续出现
             temps += BasicVariable(i->getText().substr(1, i->getText().length() - 2));
         return temps;
     } else if (ctx->NONE())
@@ -615,9 +604,12 @@ antlrcpp::Any EvalVisitor::visitAtom(Python3Parser::AtomContext *ctx) {
         return BasicVariable(true);
     else if (ctx->FALSE())
         return BasicVariable(false);
-    else if (ctx->test())
-        return visitTest(ctx->test());
-    else throw pyException("Unexpected Error in visitAtom()");
+    else if (ctx->test()) {
+        const auto &testReturn = visitTest(ctx->test());
+        if (testReturn.is<BasicVariable>())
+            return testReturn;
+    }
+    throw pyException("Unexpected Error in visitAtom()");
 }
 
 antlrcpp::Any EvalVisitor::visitTestlist(Python3Parser::TestlistContext *ctx)
