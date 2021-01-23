@@ -18,7 +18,8 @@ antlrcpp::Any EvalVisitor::visitFuncdef(Python3Parser::FuncdefContext *ctx) {
     //const auto &parameters = visitParameters(ctx->parameters()).as<pyNamespace::parameterVector>();
     Namespace.defineFunction(ctx->NAME()->getText(), ctx->suite(),
                              visitParameters(ctx->parameters()).as<pyNamespace::parameterVector>());
-    return nullptr;
+    return BasicVariable();
+    // return nullptr;
 }
 
 antlrcpp::Any EvalVisitor::visitParameters(Python3Parser::ParametersContext *ctx) {
@@ -40,13 +41,14 @@ antlrcpp::Any EvalVisitor::visitTypedargslist(Python3Parser::TypedargslistContex
     const auto &testVector = ctx->test();
     pyNamespace::parameterVector parameters;
     // 有默认值的变量必在最后
-    const auto tfpdefNumber = tfpdefVector.size();
-    const auto testNumber = testVector.size();
+    const int tfpdefNumber = tfpdefVector.size();
+    const int testNumber = testVector.size();
     for (int i = 0, boundary = tfpdefNumber - testNumber; i < boundary; ++i)
         parameters.emplace_back(std::make_pair(tfpdefVector[i]->NAME()->getText(), BasicVariable()));
     for (int i = 0, boundary = testNumber; i < boundary; ++i)
         parameters.emplace_back(std::make_pair(
-                tfpdefVector[tfpdefNumber - testNumber + i]->NAME()->getText(), BasicVariable()));
+                tfpdefVector[tfpdefNumber - testNumber + i]->NAME()->getText(),
+                visitTest(testVector[i]).as<BasicVariable>()));
     return parameters;
 }
 
@@ -575,8 +577,8 @@ antlrcpp::Any EvalVisitor::visitTrailer(Python3Parser::TrailerContext *ctx)
 #endif
     if (ctx->arglist())
         return visitArglist(ctx->arglist());
-    else std::vector<std::pair<BasicVariable, BasicVariable> >();
-    return visitChildren(ctx);//to arglist
+    else return std::vector<std::pair<BasicVariable, BasicVariable> >();
+    //return visitChildren(ctx);//to arglist
 }
 
 antlrcpp::Any EvalVisitor::visitAtom(Python3Parser::AtomContext *ctx) {
