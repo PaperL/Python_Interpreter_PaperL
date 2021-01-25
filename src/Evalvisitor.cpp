@@ -17,7 +17,7 @@ antlrcpp::Any EvalVisitor::visitFuncdef(Python3Parser::FuncdefContext *ctx) {
 #endif
     //const auto &parameters = visitParameters(ctx->parameters()).as<pyNamespace::parameterVector>();
     Namespace.defineFunction(ctx->NAME()->getText(), ctx->suite(),
-                             visitParameters(ctx->parameters()).as<pyNamespace::parameterVector>());
+                             visitParameters(ctx->parameters()).as<pyNamespace::variableVector>());
     return nullptr;
 }
 
@@ -28,7 +28,7 @@ antlrcpp::Any EvalVisitor::visitParameters(Python3Parser::ParametersContext *ctx
 #endif
     if (ctx->typedargslist())
         return visitTypedargslist(ctx->typedargslist());
-    else return pyNamespace::parameterVector();
+    else return pyNamespace::variableVector();
 }
 
 antlrcpp::Any EvalVisitor::visitTypedargslist(Python3Parser::TypedargslistContext *ctx) {
@@ -38,7 +38,7 @@ antlrcpp::Any EvalVisitor::visitTypedargslist(Python3Parser::TypedargslistContex
 #endif
     const auto &tfpdefVector = ctx->tfpdef();
     const auto &testVector = ctx->test();
-    pyNamespace::parameterVector parameters;
+    pyNamespace::variableVector parameters;
     // 有默认值的变量必在最后
     const auto tfpdefNumber = tfpdefVector.size();
     const auto testNumber = testVector.size();
@@ -499,60 +499,59 @@ antlrcpp::Any EvalVisitor::visitAtom_expr(Python3Parser::Atom_exprContext *ctx) 
     printf("visitAtom_expr\n");
     std::cout << ctx->getText() << std::endl;
 #endif
+    //非函数则直接返回BasicVariable Atom，可以是pyName类型的BasicVariable
     if (!ctx->trailer()) return visitAtom(ctx->atom());
-        //非函数则直接返回BasicVariable Atom，可以是pyName类型的BasicVariable
     else {
-        const auto tempAtom = visitAtom(ctx->atom()).as<BasicVariable>();
-        std::vector<std::pair<BasicVariable, BasicVariable> > arglist_vector = visitTrailer(ctx->trailer());
+        const auto &funcName = visitAtom(ctx->atom()).as<BasicVariable>().getName();
+        const auto argVector = visitTrailer(ctx->trailer()).as<pyNamespace::variableVector>();
+        //todo argVector 使用 const 引用 内容会变为随机数，原因不明
         //if (tempAtom.getType() != BasicVariable::pyName)
         //    throw pyException("Atom for Function Name is not pyName Type BasicVariable");
-
-        if (tempAtom.getName() == "print") {
-            if (!arglist_vector.empty()) {
-                for (auto i = arglist_vector.begin(); i != arglist_vector.end() - 1; ++i)
-                    if (i->first.isNull())
-                        std::cout << Namespace.getValue(i->second) << ' ';
-                    else throw pyException("Call print() with Keyword Argument");
-                std::cout << Namespace.getValue(arglist_vector.back().second) << std::endl;
+        if (funcName == "print") {
+            if (!argVector.empty()) {
+                for (auto i = argVector.begin(); i != argVector.end() - 1; ++i)
+                    std::cout << Namespace.getValue(i->second) << ' ';
+                //throw pyException("Call print() with Keyword Argument");
+                std::cout << Namespace.getValue(argVector.back().second) << std::endl;
             } else std::cout << std::endl;
-            return BasicVariable();// pyNull
+            return BasicVariable(BasicVariable::setNone);// pyNull
 
-        } else if (tempAtom.getName() == "bool") {
-            if (arglist_vector.empty())
+        } else if (funcName == "bool") {
+            if (argVector.empty())
                 return BasicVariable(false);
-            else if (arglist_vector.size() == 1) {
-                BasicVariable temp(Namespace.getValue(arglist_vector.front().second));
+            else if (argVector.size() == 1) {
+                BasicVariable temp = Namespace.getValue(argVector.front().second);
                 return temp.toBool();
             } else throw pyException("bool() Get more than 1 Argument");
 
-        } else if (tempAtom.getName() == "int") {
-            if (arglist_vector.empty())
+        } else if (funcName == "int") {
+            if (argVector.empty())
                 return BasicVariable(HighPrecision(0));
-            else if (arglist_vector.size() == 1) {
-                BasicVariable temp(Namespace.getValue(arglist_vector.front().second));
+            else if (argVector.size() == 1) {
+                BasicVariable temp = Namespace.getValue(argVector.front().second);
                 return temp.toInt();
             } else throw pyException("int() Get more than 1 Argument");
-            //事实上int("101",2);代表将字符串转为二进制的值
+            // 事实上int("101",2);代表将字符串转为二进制的值
 
-        } else if (tempAtom.getName() == "float") {
-            if (arglist_vector.empty())
+        } else if (funcName == "float") {
+            if (argVector.empty())
                 return BasicVariable(0.0);
-            else if (arglist_vector.size() == 1) {
-                BasicVariable temp(Namespace.getValue(arglist_vector.front().second));
+            else if (argVector.size() == 1) {
+                BasicVariable temp = Namespace.getValue(argVector.front().second);
                 return temp.toFloat();
             } else throw pyException("float() Get more than 1 Argument");
 
-        } else if (tempAtom.getName() == "str") {
-            if (arglist_vector.empty())
+        } else if (funcName == "str") {
+            if (argVector.empty())
                 return BasicVariable((std::string()));
-            else if (arglist_vector.size() == 1) {
-                BasicVariable temp(Namespace.getValue(arglist_vector.front().second));
+            else if (argVector.size() == 1) {
+                BasicVariable temp = Namespace.getValue(argVector.front().second);
                 return temp.toStr();
             } else throw pyException("str() Get more than 1 Argument");
 
         } else {
             // 执行函数
-            const auto &suiteCtx = Namespace.loadFunction(tempAtom.getName());
+            const auto suiteCtx = Namespace.loadFunction(funcName, argVector);
             const antlrcpp::Any &suiteReturn = visitSuite(suiteCtx);
             BasicVariable ret;
             if (suiteReturn.is<pyFlow>()) {
@@ -575,8 +574,7 @@ antlrcpp::Any EvalVisitor::visitTrailer(Python3Parser::TrailerContext *ctx)
 #endif
     if (ctx->arglist())
         return visitArglist(ctx->arglist());
-    else std::vector<std::pair<BasicVariable, BasicVariable> >();
-    return visitChildren(ctx);//to arglist
+    else return pyNamespace::variableVector();
 }
 
 antlrcpp::Any EvalVisitor::visitAtom(Python3Parser::AtomContext *ctx) {
@@ -608,8 +606,8 @@ antlrcpp::Any EvalVisitor::visitAtom(Python3Parser::AtomContext *ctx) {
         const auto &testReturn = visitTest(ctx->test());
         if (testReturn.is<BasicVariable>())
             return testReturn;
-    }
-    throw pyException("Unexpected Error in visitAtom()");
+    } else
+        throw pyException("Unexpected Error in visitAtom()");
 }
 
 antlrcpp::Any EvalVisitor::visitTestlist(Python3Parser::TestlistContext *ctx)
@@ -619,7 +617,7 @@ antlrcpp::Any EvalVisitor::visitTestlist(Python3Parser::TestlistContext *ctx)
     printf("visitTestlist\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    auto testVector = ctx->test();
+    const auto &testVector = ctx->test();
     antlrcpp::Any testReturn;
     std::vector<BasicVariable> retVector;
     for (auto i:testVector) {
@@ -642,11 +640,11 @@ antlrcpp::Any EvalVisitor::visitArglist(Python3Parser::ArglistContext *ctx) {
     printf("visitArglist\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    std::vector<std::pair<BasicVariable, BasicVariable> > arglist;
-    const auto &argument_vector = ctx->argument();
-    for (auto i:argument_vector)
-        arglist.emplace_back(visitArgument(i));
-    return arglist;
+    pyNamespace::variableVector argVector;
+    const auto &argumentCtxVector = ctx->argument();
+    for (auto i:argumentCtxVector)
+        argVector.emplace_back(visitArgument(i).as<std::pair<std::string, BasicVariable> >());
+    return argVector;
 }
 
 antlrcpp::Any EvalVisitor::visitArgument(Python3Parser::ArgumentContext *ctx) {
@@ -654,11 +652,11 @@ antlrcpp::Any EvalVisitor::visitArgument(Python3Parser::ArgumentContext *ctx) {
     printf("visitArgument\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    const auto &test_vector = ctx->test();
-    if (test_vector.size() == 1)
-        return std::make_pair(BasicVariable(), visitTest(test_vector.front()).as<BasicVariable>());
-    else if (test_vector.size() == 2)
-        return std::make_pair(visitTest(test_vector.front()).as<BasicVariable>(),
-                              visitTest(test_vector.back()).as<BasicVariable>());
-    else throw pyException("Argument with 0 or more than 2 Test");
+    const auto &testVector = ctx->test();
+    if (testVector.size() == 1)
+        return std::make_pair(std::string(), visitTest(testVector.front()).as<BasicVariable>());
+    else if (testVector.size() == 2)
+        return std::make_pair(visitTest(testVector.front()).as<BasicVariable>().getName(),
+                              visitTest(testVector.back()).as<BasicVariable>());
+    else throw pyException("Argument with 0 or more than 2 Tests");
 }

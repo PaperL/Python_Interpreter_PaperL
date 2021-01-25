@@ -71,15 +71,15 @@ public:
 
     BasicDataType getType() const;
 
-    std::string &getName() const;
+    std::string getName() const;
 
     bool getBool() const;
 
-    HighPrecision &getInt() const;
+    HighPrecision getInt() const;
 
-    double &getFloat() const;
+    double getFloat() const;
 
-    std::string &getString() const;
+    std::string getString() const;
 
 
     //friend std::istream &operator>>(std::istream &in, BasicVariable &arg);
@@ -164,23 +164,16 @@ public:
 
 class pyNamespace {
 public:
+    typedef std::vector<std::pair<std::string, BasicVariable> > variableVector;
     typedef std::map<std::string, BasicVariable> variableMap;
-    typedef std::vector<std::pair<std::string, BasicVariable> > parameterVector;
+    typedef std::vector<variableMap> variableMapVector;
 
-    class functionInfo {
-    public:
-        Python3Parser::SuiteContext *functionSuite;
-        variableMap functionParameter;
-
-        functionInfo(Python3Parser::SuiteContext *funcCtx, const parameterVector &parameters);
-    };
-
+    typedef std::pair<Python3Parser::SuiteContext *, variableVector> functionInfo;
     typedef std::map<std::string, functionInfo> functionMap;
-    typedef std::vector<variableMap> variableVector;
 
 private:
     functionMap userFunction;
-    variableVector VariableStack;
+    variableMapVector VariableStack;
 
 public:
     enum declareType {
@@ -199,9 +192,9 @@ public:
     //若为 pyName 类型则获取其值, 否则返回原参数
 
     void defineFunction(const std::string &name, Python3Parser::SuiteContext *funcCtx,
-                        const parameterVector &parameters = parameterVector());
+                        const variableVector &parameters = variableVector());
 
-    Python3Parser::SuiteContext *loadFunction(const std::string &name);
+    Python3Parser::SuiteContext *loadFunction(const std::string &name, const variableVector &parameters);
 
     void unloadFunction();
 };

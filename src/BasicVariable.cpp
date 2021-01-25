@@ -100,7 +100,7 @@ BasicVariable::~BasicVariable() {
 
 BasicVariable::BasicDataType BasicVariable::getType() const { return dataType; }
 
-std::string &BasicVariable::getName() const {
+std::string BasicVariable::getName() const {
     if (name == nullptr)
         throw pyException("BasicVariable's Name does not Exist");
     return *name;
@@ -118,19 +118,19 @@ bool BasicVariable::getBool() const {
     } else return valBoolean;
 }
 
-HighPrecision &BasicVariable::getInt() const {
+HighPrecision BasicVariable::getInt() const {
     if (valInteger == nullptr)
         throw pyException("BasicVariable's Integer does not Exist");
     return (*valInteger);
 }
 
-double &BasicVariable::getFloat() const {
+double BasicVariable::getFloat() const {
     if (valFloatingPoint == nullptr)
         throw pyException("BasicVariable's FloatingPoint do not Exist");
     return (*valFloatingPoint);
 }
 
-std::string &BasicVariable::getString() const {
+std::string BasicVariable::getString() const {
     if (valString == nullptr)
         throw pyException("BasicVariable's String do not Exist");
     return (*valString);

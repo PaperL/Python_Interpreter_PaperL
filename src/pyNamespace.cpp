@@ -4,12 +4,6 @@
 
 #include "Basic.h"
 
-pyNamespace::functionInfo::functionInfo(Python3Parser::SuiteContext *funcSuite, const parameterVector &parameters)
-        : functionSuite(funcSuite) {
-    for(auto i:parameters)
-        functionParameter.insert(std::make_pair(i.first,i.second));
-}
-
 pyNamespace::pyNamespace() { VariableStack.emplace_back(variableMap()); }
 
 BasicVariable pyNamespace::getVariable(const std::string &name) {
@@ -62,22 +56,44 @@ BasicVariable pyNamespace::getValue(const BasicVariable &arg) {
 }
 
 void pyNamespace::defineFunction(const std::string &name, Python3Parser::SuiteContext *funcCtx,
-                                 const parameterVector &parameters) {
+                                 const variableVector &parameters) {
     auto p = userFunction.find(name);
     if (p != userFunction.end())
         throw pyException("Redifine Function \"" + name + '\"');
 
-    userFunction.insert(std::make_pair(name, functionInfo(funcCtx, parameters)));
+    userFunction.insert(std::make_pair(name, std::make_pair(funcCtx, parameters)));
 }
 
-Python3Parser::SuiteContext *pyNamespace::loadFunction(const std::string &name) {
+Python3Parser::SuiteContext *pyNamespace::loadFunction(const std::string &name, const variableVector &parameters) {
     auto p = userFunction.find(name);
     if (p != userFunction.end()) {
+        const auto &functionParameter = p->second.second;
         // 进入函数时将参数列表作为局部变量空间
-        VariableStack.emplace_back(p->second.functionParameter);
-        return p->second.functionSuite;
-    }
+        variableMap localVariableMap;
+        // 先载入函数所有参数
+        for (const auto &i:functionParameter)
+            localVariableMap.insert(std::make_pair(i.first, i.second));
+        // 以输入参数覆盖
+        int i = 0;
+        // position argument
+        for (; i < parameters.size(); ++i) {
+            if (parameters[i].first.empty())
+                localVariableMap.find(functionParameter[i].first)->second = parameters[i].second;
+            else break;
+        }
+        // keyword argument
+        for (; i < parameters.size(); ++i) {
+            if (parameters[i].first.empty())
+                throw pyException("Get Keyword Argument ahead of Positional Argument");
+            auto p2 = localVariableMap.find(parameters[i].first);
+            if (p2 == localVariableMap.end())
+                throw pyException("Get Wrong Keyword Argument");
+            p2->second = parameters[i].second;
+        }
 
+        VariableStack.emplace_back(localVariableMap);
+        return p->second.first;
+    }
     throw pyException("Function \"" + name + "\" Not Found");
 }
 
