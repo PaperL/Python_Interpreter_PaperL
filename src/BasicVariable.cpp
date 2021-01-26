@@ -4,18 +4,6 @@
 
 #include "Basic.h"
 
-/*void BasicVariable::strGet(const std::string &arg) {
-
-}
-
-std::string BasicVariable::strShow() {
-
-}
-
-void BasicVariable::print() const {
-
-}*/
-
 BasicVariable::BasicVariable(ConstructorType type) : dataType(pyNull),
                                                      name(nullptr),
                                                      valBoolean(false),
@@ -171,8 +159,10 @@ BasicVariable &BasicVariable::operator=(const BasicVariable &arg) {
         delete valString;
 
     dataType = arg.dataType;
-    if (dataType == pyName)
-        name = new std::string(*arg.name);
+    if (dataType == pyName) {
+        name = new std::string;
+        *name = *arg.name;
+    }
     else if (dataType == pyBoolean)
         valBoolean = arg.valBoolean;
     else if (dataType == pyInteger)

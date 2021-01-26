@@ -9,12 +9,14 @@
 
 #include <cstdio>//perror
 #include <string>
+#include <exception>
 
-class pyException {
+// 良好的代码习惯应是从 std::exception 继承
+class pyException : public std::exception {
 public:
-    std::string errInfo;
+    std::string pyErrorInfo;
 
-    pyException(std::string arg = "null") : errInfo(arg) {
+    pyException(std::string arg = "No ErrorInfo pyException") : pyErrorInfo(arg) {
         perror(arg.c_str());
     }
 };

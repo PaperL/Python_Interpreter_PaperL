@@ -171,6 +171,8 @@ public:
     typedef std::pair<Python3Parser::SuiteContext *, variableVector> functionInfo;
     typedef std::map<std::string, functionInfo> functionMap;
 
+    typedef std::vector<BasicVariable> valueVector;
+
 private:
     functionMap userFunction;
     variableMapVector VariableStack;
@@ -213,18 +215,19 @@ public:
 
 private:
     flowType myType;
-    BasicVariable *returnValue;
+    pyNamespace::valueVector returnValue;
+    // 此处用指针会导致错误 原因不明
 
 public:
     explicit pyFlow(flowType type);
 
-    explicit pyFlow(flowType type, const BasicVariable &arg);
+    explicit pyFlow(flowType type, const pyNamespace::valueVector &arg);
 
-    ~pyFlow();
+    //~pyFlow();
 
     flowType getType() const;
 
-    BasicVariable getReturnValue() const;
+    pyNamespace::valueVector getReturnValue() const;
 };
 
 

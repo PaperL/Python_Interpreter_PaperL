@@ -19,7 +19,7 @@ int main(int argc, const char *argv[]) {
         EvalVisitor visitor;
         visitor.visit(tree);
     } catch (pyException &exception) {
-        perror(exception.errInfo.c_str());
+        perror(exception.pyErrorInfo.c_str());
     }
 
     /* 旧版本 main 函数内容
