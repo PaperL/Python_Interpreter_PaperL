@@ -52,6 +52,8 @@ private:
 
     void print() const;*/
 
+    void destroy();
+
 public:
 
     BasicVariable(ConstructorType type = setDefault);
@@ -89,7 +91,7 @@ public:
 
     BasicVariable &operator=(const BasicVariable &arg);
 
-    char operator[](const int &index) const;
+    char operator[](const int index) const;
 
 
     BasicVariable operator!() const;

@@ -23,18 +23,21 @@ BasicVariable pyNamespace::getVariable(const std::string &name) {
 
 void pyNamespace::assignVariable(const std::string &name, const BasicVariable &arg, declareType type) {
     auto &globalVariable = VariableStack.front();
+    auto &localVariable = VariableStack.back();
 
     auto p = globalVariable.find(name);
     if (p != globalVariable.end()) {
-        p->second = arg;
+        globalVariable.erase(p);
+        globalVariable.insert(std::make_pair(name, arg));
+        //p->second = arg;
         return;
     }
 
     if (VariableStack.size() > 1) {
-        auto &localVariableStack = VariableStack.back();
-        p = localVariableStack.find(name);
-        if (p != localVariableStack.end()) {
-            p->second = arg;
+        p = localVariable.find(name);
+        if (p != localVariable.end()) {
+            localVariable.erase(p);
+            localVariable.insert(std::make_pair(name, arg));
             return;
         }
     }
@@ -77,9 +80,11 @@ Python3Parser::SuiteContext *pyNamespace::loadFunction(const std::string &name, 
         int i = 0;
         // position argument
         for (; i < parameters.size(); ++i) {
-            if (parameters[i].first.empty())
-                localVariableMap.find(functionParameter[i].first)->second = parameters[i].second;
-            else break;
+            if (parameters[i].first.empty()) {
+                auto p2 = localVariableMap.find(functionParameter[i].first);
+                localVariableMap.erase(p2);
+                localVariableMap.insert(std::make_pair(functionParameter[i].first, parameters[i].second));
+            } else break;
         }
         // keyword argument
         for (; i < parameters.size(); ++i) {
@@ -88,7 +93,8 @@ Python3Parser::SuiteContext *pyNamespace::loadFunction(const std::string &name, 
             auto p2 = localVariableMap.find(parameters[i].first);
             if (p2 == localVariableMap.end())
                 throw pyException("Get Wrong Keyword Argument");
-            p2->second = parameters[i].second;
+            localVariableMap.erase(p2);
+            localVariableMap.insert(std::make_pair(parameters[i].first, parameters[i].second));
         }
 
         VariableStack.emplace_back(localVariableMap);

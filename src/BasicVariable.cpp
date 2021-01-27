@@ -4,6 +4,13 @@
 
 #include "Basic.h"
 
+void BasicVariable::destroy() {
+    delete name;
+    delete valInteger;
+    delete valFloatingPoint;
+    delete valString;
+}
+
 BasicVariable::BasicVariable(ConstructorType type) : dataType(pyNull),
                                                      name(nullptr),
                                                      valBoolean(false),
@@ -15,19 +22,20 @@ BasicVariable::BasicVariable(ConstructorType type) : dataType(pyNull),
 }
 
 BasicVariable::BasicVariable(const BasicVariable &arg, ConstructorType type) : dataType(arg.dataType),
-                                                                               valBoolean(arg.valBoolean) {
+                                                                               valBoolean(arg.valBoolean),
+                                                                               name(nullptr),
+                                                                               valInteger(nullptr),
+                                                                               valFloatingPoint(nullptr),
+                                                                               valString(nullptr) {
     if (arg.name)name = new std::string(*arg.name);
-    else name = nullptr;
     if (arg.valInteger)valInteger = new HighPrecision(*arg.valInteger);
-    else valInteger = nullptr;
     if (arg.valFloatingPoint)valFloatingPoint = new double(*arg.valFloatingPoint);
-    else valFloatingPoint = nullptr;
     if (arg.valString)valString = new std::string(*arg.valString);
-    else valString = nullptr;
 
     if (type == setNegation) {
         if (dataType == pyBoolean)
             valBoolean = !valBoolean;
+        else throw pyException("Try to set not pyBoolean Value Negation");
     } else if (type == setPositive || type == setNegative) {
         if (dataType != pyBoolean && dataType != pyInteger && dataType != pyFloatingPoint)
             throw pyException("Try to Set Variable of Null/Name/None/String Positive/Negative");
@@ -71,19 +79,7 @@ BasicVariable::BasicVariable(const std::string &arg, ConstructorType type) : Bas
 
 BasicVariable::~BasicVariable() {
     //出于不明原因被两次调用，故需保护
-    if (dataType == pyName) {
-        delete name;
-        name = nullptr;
-    } else if (dataType == pyInteger) {
-        delete valInteger;
-        valInteger = nullptr;
-    } else if (dataType == pyFloatingPoint) {
-        delete valFloatingPoint;
-        valFloatingPoint = nullptr;
-    } else if (dataType == pyString) {
-        delete valString;
-        valString = nullptr;
-    }
+    destroy();
 }
 
 BasicVariable::BasicDataType BasicVariable::getType() const { return dataType; }
@@ -149,21 +145,13 @@ std::ostream &operator<<(std::ostream &out, const BasicVariable &arg) {
 
 BasicVariable &BasicVariable::operator=(const BasicVariable &arg) {
     if (this == &arg)return (*this);
-    if (dataType == pyName)
-        delete name;
-    else if (dataType == pyInteger)
-        delete valInteger;
-    else if (dataType == pyFloatingPoint)
-        delete valFloatingPoint;
-    else if (dataType == pyString)
-        delete valString;
+    destroy();
 
     dataType = arg.dataType;
     if (dataType == pyName) {
         name = new std::string;
         *name = *arg.name;
-    }
-    else if (dataType == pyBoolean)
+    } else if (dataType == pyBoolean)
         valBoolean = arg.valBoolean;
     else if (dataType == pyInteger)
         valInteger = new HighPrecision(*arg.valInteger);
@@ -175,8 +163,8 @@ BasicVariable &BasicVariable::operator=(const BasicVariable &arg) {
     return *this;
 }
 
-char BasicVariable::operator[](const int &index) const {
-    if (dataType == pyString && index < valString->length())
+char BasicVariable::operator[](const int index) const {
+    if (dataType == pyString && index >= 0 && index < valString->length())
         return (*valString)[index];
     else throw pyException("Use Not-string Variable's operator[]");
 }
@@ -185,7 +173,7 @@ BasicVariable BasicVariable::operator!() const {
     if (dataType == pyBoolean)
         return BasicVariable(*this, setNegation);
     else {
-        throw pyException("Warning: Use Not-boolean Variable's operator!");
+        throw pyException("Warning: Use Not-boolean Variable's operator \"!\"");
         /*if(dataType==pyInteger)
             return BasicVariable(pyBoolean,!(*valInteger).isZero());
         else if(dataType == pyFloatingPoint)
@@ -204,7 +192,7 @@ BasicVariable BasicVariable::operator||(const BasicVariable &arg) const {
 bool BasicVariable::operator==(const BasicVariable &arg) const {
     if (this->dataType == pyNull || this->dataType == pyName
         || arg.dataType == pyNull || arg.dataType == pyName)
-        throw pyException("Try to Compare Variables of Null/Name Type (in operator==)");
+        throw pyException("Try to Compare Variables of Null/Name Type (in operator ==)");
     if (this->dataType == pyNone || arg.dataType == pyNone)
         return (this->dataType == arg.dataType);
     if (this->dataType == pyString || arg.dataType == pyString) {

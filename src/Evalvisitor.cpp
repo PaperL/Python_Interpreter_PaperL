@@ -66,6 +66,7 @@ antlrcpp::Any EvalVisitor::visitStmt(Python3Parser::StmtContext *ctx) {
     printf("visitStmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
+    //std::cout << "# " << ctx->getText() << std::endl;
     return (ctx->simple_stmt() ?
             visitSimple_stmt(ctx->simple_stmt()) :
             visitCompound_stmt(ctx->compound_stmt()));
@@ -94,29 +95,6 @@ antlrcpp::Any EvalVisitor::visitExpr_stmt(Python3Parser::Expr_stmtContext *ctx) 
     printf("visitExpr_stmt\n");
     std::cout << ctx->getText() << std::endl;
 #endif
-    //pyName会自atom直接至本函数
-    /*if(ctx->augassign()){//e.g. += /=
-
-    }else if(ctx->ASSIGN().front().)
-    antlrcpp::Any tempPtr = ctx->testlist()
-    antlrcpp::Any tempPtr = ctx->or_test();
-    //antlrcpp::Any tempPtr = ctx->or_test()->and_test(0)->not_test(0)->comparison();
-    if (tempPtr.isNotNull()) {
-        tempPtr = tempPtr.as<Python3Parser::ComparisonContext *>()
-                ->arith_expr(0)->term(0)->factor(0)->atom_expr();
-        if(tempPtr.isNotNull()){
-            tempPtr = tempPtr.as<Python3Parser::Atom_exprContext*>()
-                    ->atom();
-        }
-    }
-    if ()
-    visitTestlist(ctx->testlist().front().);
-
-    //visitTestlist(ctx->testlist().back()).as<
-    //return visitChildren(ctx);*/
-    // 不知道怎么提前判断左值
-    // 可以考虑 BasicVariable 加一 flag 用于保护 pyName 不被转为实值
-
     std::vector<pyNamespace::valueVector> testlistVector;
     for (auto i:ctx->testlist())
         testlistVector.emplace_back(visitTestlist(i).as<pyNamespace::valueVector>());
@@ -162,7 +140,7 @@ antlrcpp::Any EvalVisitor::visitExpr_stmt(Python3Parser::Expr_stmtContext *ctx) 
                 for (int j = 0; j < leftTestlist->size(); ++j) {
                     Namespace.assignVariable((*leftTestlist)[j].getName(),
                                              Namespace.getValue((*rightTestlist)[j]),
-                                             pyNamespace::pyGlobal);//todo global/local判断待研究
+                                             pyNamespace::pyLocal);//todo global/local判断待研究
                 }
             }
         }
@@ -288,10 +266,8 @@ antlrcpp::Any EvalVisitor::visitSuite(Python3Parser::SuiteContext *ctx) {
         const auto &stmtVector = ctx->stmt();
         for (auto i:stmtVector) {
             const antlrcpp::Any stmtReturn = visitStmt(i);
-            if (stmtReturn.is<pyFlow>()) {
-                //std::cout << "cp1" << std::endl;
+            if (stmtReturn.is<pyFlow>())
                 return stmtReturn;
-            }
             //else throw pyException("Unexpected Suite Return");
         }
     }
@@ -455,14 +431,14 @@ antlrcpp::Any EvalVisitor::visitTerm(Python3Parser::TermContext *ctx) {
         std::string sign;
         for (int i = 0; i < muldivmod_op.size(); ++i) {
             rightValue = Namespace.getValue(visitFactor(factor_vector[i + 1]).as<BasicVariable>());
-            sign = muldivmod_op[i]->getText();
-            if (sign == "*") {
+            const auto &sign = muldivmod_op[i];
+            if (sign->STAR()) {
                 leftValue *= rightValue;
-            } else if (sign == "/") {
+            } else if (sign->DIV()) {
                 leftValue /= rightValue;
-            } else if (sign == "//") {
-                leftValue.evenlyDivide(rightValue);
-            } else if (sign == "%") {
+            } else if (sign->IDIV()) {
+                leftValue = leftValue.evenlyDivide(rightValue);
+            } else if (sign->MOD()) {
                 leftValue %= rightValue;
             } else throw pyException("Unexpected Error1 in visitTerm()");
         }
@@ -655,7 +631,10 @@ antlrcpp::Any EvalVisitor::visitArglist(Python3Parser::ArglistContext *ctx) {
     const auto &argumentCtxVector = ctx->argument();
     for (auto i:argumentCtxVector) {
         antlrcpp::Any argumentReturn = visitArgument(i);
-        if (argumentReturn.is<pyNamespace::valueVector>()) {
+        if (argumentReturn.is<BasicVariable>()) {
+            const auto &argumentReturnValue = argumentReturn.as<BasicVariable>();
+            argVector.emplace_back(std::make_pair(std::string(), Namespace.getValue(argumentReturnValue)));
+        } else if (argumentReturn.is<pyNamespace::valueVector>()) {
             const auto &argumentReturnVector = argumentReturn.as<pyNamespace::valueVector>();
             for (auto i:argumentReturnVector)
                 argVector.emplace_back(std::make_pair(std::string(), Namespace.getValue(i)));
