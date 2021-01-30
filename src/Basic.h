@@ -46,16 +46,9 @@ private:
     double *valFloatingPoint;
     std::string *valString;
 
-    /*void strGet(const std::string &arg);
-
-    std::string strShow();
-
-    void print() const;*/
-
     void destroy();
 
 public:
-
     BasicVariable(ConstructorType type = setDefault);
 
     BasicVariable(const BasicVariable &arg, ConstructorType type = setDefault);
@@ -83,8 +76,6 @@ public:
 
     std::string getString() const;
 
-
-    //friend std::istream &operator>>(std::istream &in, BasicVariable &arg);
 
     friend std::ostream &operator<<(std::ostream &out, const BasicVariable &arg);
 
@@ -218,14 +209,12 @@ public:
 private:
     flowType myType;
     pyNamespace::valueVector returnValue;
-    // 此处用指针会导致错误 原因不明
+    // todo 此处用指针会导致错误 原因不明
 
 public:
     explicit pyFlow(flowType type);
 
     explicit pyFlow(flowType type, const pyNamespace::valueVector &arg);
-
-    //~pyFlow();
 
     flowType getType() const;
 

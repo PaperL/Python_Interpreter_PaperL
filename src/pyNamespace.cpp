@@ -8,14 +8,15 @@ pyNamespace::pyNamespace() { VariableStack.emplace_back(variableMap()); }
 
 BasicVariable pyNamespace::getVariable(const std::string &name) {
     auto &globalVariable = VariableStack.front();// VariableStack 底层为全局变量
-    auto p = globalVariable.find(name);
-    if (p != globalVariable.end())
+    auto &localVariable = VariableStack.back();// 顶层为当前局部变量
+
+    auto p = localVariable.find(name);
+    if (p != localVariable.end())
         return p->second;
 
     if (VariableStack.size() > 1) {
-        auto &localVariableStack = VariableStack.back();
-        p = localVariableStack.find(name);
-        if (p != localVariableStack.end())
+        p = globalVariable.find(name);
+        if (p != globalVariable.end())
             return p->second;
     }
     throw pyException("Variable \"" + name + "\" Not Found (getVariable)");
@@ -25,19 +26,16 @@ void pyNamespace::assignVariable(const std::string &name, const BasicVariable &a
     auto &globalVariable = VariableStack.front();
     auto &localVariable = VariableStack.back();
 
-    auto p = globalVariable.find(name);
-    if (p != globalVariable.end()) {
-        globalVariable.erase(p);
-        globalVariable.insert(std::make_pair(name, arg));
-        //p->second = arg;
+    auto p = localVariable.find(name);
+    if(p!=localVariable.end()){
+        p->second = arg;
         return;
     }
 
     if (VariableStack.size() > 1) {
-        p = localVariable.find(name);
-        if (p != localVariable.end()) {
-            localVariable.erase(p);
-            localVariable.insert(std::make_pair(name, arg));
+        p = globalVariable.find(name);
+        if (p != globalVariable.end()) {
+            p->second = arg;
             return;
         }
     }

@@ -5,10 +5,16 @@
 #include "Basic.h"
 
 void BasicVariable::destroy() {
+    dataType = pyNull;
+    valBoolean = false;
     delete name;
     delete valInteger;
     delete valFloatingPoint;
     delete valString;
+    name = nullptr;
+    valInteger = nullptr;
+    valFloatingPoint = nullptr;
+    valString = nullptr;
 }
 
 BasicVariable::BasicVariable(ConstructorType type) : dataType(pyNull),
@@ -77,59 +83,45 @@ BasicVariable::BasicVariable(const std::string &arg, ConstructorType type) : Bas
     }
 }
 
-BasicVariable::~BasicVariable() {
-    //出于不明原因被两次调用，故需保护
-    destroy();
-}
+BasicVariable::~BasicVariable() { destroy(); }
 
 BasicVariable::BasicDataType BasicVariable::getType() const { return dataType; }
 
 std::string BasicVariable::getName() const {
-    if (name == nullptr)
+    if (this->dataType!=pyName || name == nullptr)
         throw pyException("BasicVariable's Name does not Exist");
     return *name;
 }
 
 bool BasicVariable::getBool() const {
-    if (dataType != pyBoolean) {
-        if (dataType == pyInteger) {
-            return !(*valInteger).isZero();
-        } else if (dataType == pyFloatingPoint) {
-            return ((*valFloatingPoint) != 0);
-        } else if (dataType == pyString) {
-            return !(*valString).empty();
-        } else return false;
-    } else return valBoolean;
+    if (dataType != pyBoolean)
+        throw pyException("BasicVariable's Boolean does not Exist");
+    else return valBoolean;
 }
 
 HighPrecision BasicVariable::getInt() const {
-    if (valInteger == nullptr)
+    if (this->dataType!=pyInteger || valInteger == nullptr)
         throw pyException("BasicVariable's Integer does not Exist");
     return (*valInteger);
 }
 
 double BasicVariable::getFloat() const {
-    if (valFloatingPoint == nullptr)
+    if (this->dataType!=pyFloatingPoint || valFloatingPoint == nullptr)
         throw pyException("BasicVariable's FloatingPoint do not Exist");
     return (*valFloatingPoint);
 }
 
 std::string BasicVariable::getString() const {
-    if (valString == nullptr)
+    if (this->dataType!=pyString || valString == nullptr)
         throw pyException("BasicVariable's String do not Exist");
     return (*valString);
 }
-
-/*std::istream &operator>>(std::istream &in, BasicVariable &arg) {
-
-    return in;
-}*/
 
 std::ostream &operator<<(std::ostream &out, const BasicVariable &arg) {
     if (arg.dataType == BasicVariable::pyNull)
         throw pyException("Try to Output Null Variable");
     else if (arg.dataType == BasicVariable::pyName)
-        throw pyException("Try to Output Variable's Name");
+        throw pyException("Try to Output Variable's Name: \"" + arg.getName() + '\"');
     else if (arg.dataType == BasicVariable::pyNone)
         std::cout << "None";
     else if (arg.dataType == BasicVariable::pyBoolean)
@@ -137,7 +129,8 @@ std::ostream &operator<<(std::ostream &out, const BasicVariable &arg) {
     else if (arg.dataType == BasicVariable::pyInteger)
         std::cout << *(arg.valInteger);
     else if (arg.dataType == BasicVariable::pyFloatingPoint)
-        std::cout << *(arg.valFloatingPoint);
+        printf("%.6lf", *(arg.valFloatingPoint));
+        //std::cout << *(arg.valFloatingPoint);
     else if (arg.dataType == BasicVariable::pyString)
         std::cout << *(arg.valString);
     return out;
@@ -146,12 +139,10 @@ std::ostream &operator<<(std::ostream &out, const BasicVariable &arg) {
 BasicVariable &BasicVariable::operator=(const BasicVariable &arg) {
     if (this == &arg)return (*this);
     destroy();
-
     dataType = arg.dataType;
-    if (dataType == pyName) {
-        name = new std::string;
-        *name = *arg.name;
-    } else if (dataType == pyBoolean)
+    if (dataType == pyName)
+        name = new std::string(*arg.name);
+    else if (dataType == pyBoolean)
         valBoolean = arg.valBoolean;
     else if (dataType == pyInteger)
         valInteger = new HighPrecision(*arg.valInteger);
@@ -364,23 +355,9 @@ BasicVariable BasicVariable::operator/(const BasicVariable &arg) const {
         && arg.dataType != pyBoolean && arg.dataType != pyInteger && arg.dataType != pyFloatingPoint)
         throw pyException("Try to Divide Variables of Null/Name/None/String Type");
 
-    if (this->dataType == pyFloatingPoint || arg.dataType == pyFloatingPoint) {
-        if (this->dataType != pyFloatingPoint) {
-            if (arg.getFloat() == 0)
-                throw pyException("Divide Float Zero");
-            BasicVariable temp(*this);
-            return BasicVariable(temp.toFloat().getFloat() / arg.getFloat());
-        } else if (arg.dataType != pyFloatingPoint) {
-            BasicVariable temp(arg);
-            if (temp.toFloat().getFloat() == 0)
-                throw pyException("Divide Float Zero");
-            return BasicVariable((*this).getFloat() / temp.getFloat());
-        } else {
-            if (arg.getFloat() == 0)
-                throw pyException("Divide Float Zero");
-            return BasicVariable(this->getFloat() / arg.getFloat());
-        }
-    } else return this->evenlyDivide(arg);
+    BasicVariable tempThis = *this, tempArg = arg;
+    tempThis.toFloat(), tempArg.toFloat();
+    return BasicVariable(tempThis.getFloat() / tempArg.getFloat());
 }
 
 BasicVariable BasicVariable::evenlyDivide(const BasicVariable &arg) const {
@@ -394,7 +371,9 @@ BasicVariable BasicVariable::evenlyDivide(const BasicVariable &arg) const {
         return BasicVariable(HighPrecision(this->getBool() ? 1 : 0) / arg.getInt());
     else if (arg.dataType == pyBoolean)
         return BasicVariable(this->getInt() / HighPrecision(arg.getBool() ? 1 : 0));
-    else return BasicVariable(this->getInt() / arg.getInt());
+    else {
+        return BasicVariable(this->getInt() / arg.getInt());
+    }
 }
 
 BasicVariable BasicVariable::operator%(const BasicVariable &arg) const {
@@ -444,15 +423,7 @@ BasicVariable BasicVariable::operator%=(const BasicVariable &arg) {
 BasicVariable &BasicVariable::toNone() {
     if (dataType == pyNone)return (*this);
 
-    if (dataType == pyName)
-        delete name;
-    else if (dataType == pyInteger)
-        delete valInteger;
-    else if (dataType == pyFloatingPoint)
-        delete valFloatingPoint;
-    else if (dataType == pyString)
-        delete valString;
-
+    destroy();
     dataType = pyNone;
 
     return (*this);
@@ -460,82 +431,78 @@ BasicVariable &BasicVariable::toNone() {
 
 BasicVariable &BasicVariable::toBool() {
     if (dataType == pyBoolean)return (*this);
+    bool tempAns;
 
-    if (dataType == pyNone)
-        valBoolean = false;
-    else if (dataType == pyInteger) {
-        valBoolean = bool(*valInteger);
-        delete valInteger;
-    } else if (dataType == pyFloatingPoint) {
-        valBoolean = ((*valFloatingPoint) != 0);
-        delete valFloatingPoint;
-    } else if (dataType == pyString) {
-        valBoolean = !(*valString).empty();
-        delete valString;
-    } else throw pyException("Try to Convert Variable of Null/Name to Bool");
+    if (dataType == pyNone) tempAns = false;
+    else if (dataType == pyInteger) tempAns = bool(*valInteger);
+    else if (dataType == pyFloatingPoint) tempAns = ((*valFloatingPoint) != 0);
+    else if (dataType == pyString) tempAns = !(*valString).empty();
+    else throw pyException("Try to Convert Variable of Null/Name to Bool");
 
+    destroy();
     dataType = pyBoolean;
+    valBoolean = tempAns;
 
     return (*this);
 }
 
 BasicVariable &BasicVariable::toInt() {
     if (dataType == pyInteger)return (*this);
+    HighPrecision tempAns;
 
-    if (dataType == pyBoolean) {
-        valInteger = new HighPrecision(valBoolean ? 1 : 0);
-        valBoolean = false;
-    } else if (dataType == pyFloatingPoint) {
-        valInteger = new HighPrecision(int(*valFloatingPoint));
-        delete valFloatingPoint;
-    } else if (dataType == pyString) {//此处string->int相当于string->bool->int
-        valInteger = new HighPrecision((*valString).empty() ? 0 : 1);
-        delete valString;
-    } else throw pyException("Try to Convert Variable of Null/Name/None to Integer");
+    if (dataType == pyBoolean) tempAns = HighPrecision(valBoolean ? 1 : 0);
+    else if (dataType == pyFloatingPoint) tempAns = HighPrecision(int(*valFloatingPoint));
+    else if (dataType == pyString) tempAns = HighPrecision((*valString).empty() ? 0 : 1);
+        //此处string->int相当于string->bool->int
+    else throw pyException("Try to Convert Variable of Null/Name/None to Integer");
 
+    destroy();
     dataType = pyInteger;
+    valInteger = new HighPrecision(tempAns);
 
     return (*this);
 }
 
 BasicVariable &BasicVariable::toFloat() {
     if (dataType == pyFloatingPoint)return (*this);
+    double tempAns;
 
-    if (dataType == pyBoolean) {
-        valFloatingPoint = new double(valBoolean ? 1.0 : 0.0);
-        valBoolean = false;
-    } else if (dataType == pyInteger) {
-        valFloatingPoint = new double(double(*valInteger));//todo 为什么此处不new double(*arg)不会报错？？？
-        delete valInteger;
-    } else if (dataType == pyString) {
-        valFloatingPoint = new double((*valString).empty() ? 0.0 : 1.0);
-        delete valString;
-    } else throw pyException("Try to Convert Variable of Null/Name/None to Float");
+    if (dataType == pyBoolean) tempAns = valBoolean ? 1.0 : 0.0;
+    else if (dataType == pyInteger) tempAns = double(*valInteger);
+    else if (dataType == pyString) tempAns = (*valString).empty() ? 0.0 : 1.0;
+    else throw pyException("Try to Convert Variable of Null/Name/None to Float");
 
+    destroy();
     dataType = pyFloatingPoint;
+    valFloatingPoint = new double(tempAns);
 
     return (*this);
 }
 
 BasicVariable &BasicVariable::toStr() {
     if (dataType == pyString)return (*this);
+    std::string tempAns;
 
-    if (dataType == pyNone)
-        valString = new std::string("None");
-    else if (dataType == pyBoolean) {
-        valString = new std::string(valBoolean ? "True" : "False");
-        valBoolean = false;
-    } else if (dataType == pyInteger) {
-        valString = new std::string(std::string(*valInteger));//todo 此处IDE无法正常跳转类型转换函数
-        delete valInteger;
-    } else if (dataType == pyFloatingPoint) {
-        std::stringstream ss;
-        ss << (*valFloatingPoint);
-        valString = new std::string(ss.str());
-        delete valFloatingPoint;
+    if (dataType == pyNone) tempAns = "None";
+    else if (dataType == pyBoolean)
+        tempAns = valBoolean ? "True" : "False";
+    else if (dataType == pyInteger)
+        tempAns = std::string(*valInteger);// 此处IDE无法正常跳转类型转换函数?
+    else if (dataType == pyFloatingPoint) {
+        //std::stringstream ss;
+        //ss << (*valFloatingPoint);
+        //tempAns = ss.str();
+        // 需用 cout<<setiosflags(ios::fixed)<<setprecision(6); 控制小数点后位数
+        // 需要头文件 #include <iomanip>
+        char ss[32];
+        // sprintf(ss,"%g",*valFloatingPoint); 自动去除末尾0
+        sprintf(ss,"%.6lf",*valFloatingPoint);
+        tempAns = ss;
     } else throw pyException("Try to Convert Variable of Null/Name to String");
 
+    destroy();
     dataType = pyString;
+    valString = new std::string(tempAns);
 
     return (*this);
 }

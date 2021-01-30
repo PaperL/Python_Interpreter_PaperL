@@ -166,10 +166,9 @@ antlrcpp::Any EvalVisitor::visitFlow_stmt(Python3Parser::Flow_stmtContext *ctx) 
         return visitBreak_stmt(ctx->break_stmt());
     else if (ctx->continue_stmt())
         return visitContinue_stmt(ctx->continue_stmt());
-    else if (ctx->return_stmt()) {
-        //std::cout << "cp2" << std::endl;
+    else if (ctx->return_stmt())
         return visitReturn_stmt(ctx->return_stmt());
-    } else throw pyException("Unexpected Error in visitFlow_stmt()");
+    else throw pyException("Unexpected Error in visitFlow_stmt()");
 }
 
 antlrcpp::Any EvalVisitor::visitBreak_stmt(Python3Parser::Break_stmtContext *ctx) {
@@ -196,8 +195,7 @@ antlrcpp::Any EvalVisitor::visitReturn_stmt(Python3Parser::Return_stmtContext *c
     std::cout << ctx->getText() << std::endl;
 #endif
     if (ctx->testlist()) {
-        //std::cout << "cp3" << std::endl;
-        //todo 此处需要将 testlist 中内容均由 pyName 转为实际值
+        // 此处需要将 testlist 中内容均由 pyName 转为实际值
         auto testlistReturn = visitTestlist(ctx->testlist()).as<pyNamespace::valueVector>();
         pyNamespace::valueVector testlistValue;
         for (auto i:testlistReturn)
@@ -228,8 +226,9 @@ antlrcpp::Any EvalVisitor::visitIf_stmt(Python3Parser::If_stmtContext *ctx) {
     const auto &testVector = ctx->test();
     const auto &suiteVector = ctx->suite();
     for (int i = 0; i < testVector.size(); ++i) {
-        if (visitTest(testVector[i]).as<BasicVariable>().getBool())
-            return visitSuite(suiteVector[i]);
+        auto testReturn = visitTest(testVector[i]).as<BasicVariable>();
+        testReturn = Namespace.getValue(testReturn).toBool();
+        if (testReturn.getBool()) return visitSuite(suiteVector[i]);
     }
     if (ctx->ELSE()) return visitSuite(suiteVector.back());
     return nullptr;
@@ -242,15 +241,18 @@ antlrcpp::Any EvalVisitor::visitWhile_stmt(Python3Parser::While_stmtContext *ctx
     std::cout << ctx->getText() << std::endl;
 #endif
     antlrcpp::Any suiteReturn;
-    while (visitTest(ctx->test()).as<BasicVariable>().getBool()) {
+    auto testReturn = visitTest(ctx->test()).as<BasicVariable>();
+    testReturn = Namespace.getValue(testReturn).toBool();
+    while (testReturn.getBool()) {
         suiteReturn = visitSuite(ctx->suite());
         if (suiteReturn.is<pyFlow>()) {
             const auto &ret = suiteReturn.as<pyFlow>();
             if (ret.getType() == pyFlow::pyContinue) continue;
             else if (ret.getType() == pyFlow::pyBreak) break;
-            else if (ret.getType() == pyFlow::pyReturn)
-                return ret;
+            else if (ret.getType() == pyFlow::pyReturn) return ret;
         }// else throw pyException("Unexpected Suite Return in visitWhile_stmt()");
+        testReturn = visitTest(ctx->test()).as<BasicVariable>();
+        testReturn = Namespace.getValue(testReturn).toBool();
     }
     return nullptr;
 }
@@ -266,8 +268,7 @@ antlrcpp::Any EvalVisitor::visitSuite(Python3Parser::SuiteContext *ctx) {
         const auto &stmtVector = ctx->stmt();
         for (auto i:stmtVector) {
             const antlrcpp::Any stmtReturn = visitStmt(i);
-            if (stmtReturn.is<pyFlow>())
-                return stmtReturn;
+            if (stmtReturn.is<pyFlow>()) return stmtReturn;
             //else throw pyException("Unexpected Suite Return");
         }
     }
@@ -292,8 +293,9 @@ antlrcpp::Any EvalVisitor::visitOr_test(Python3Parser::Or_testContext *ctx) {
         return visitAnd_test(and_test_vector.front());
     else {
         for (auto i:and_test_vector) {
-            if ((Namespace.getValue(visitAnd_test(i).as<BasicVariable>())).getBool())
-                return BasicVariable(true);
+            auto andTestReturn = visitAnd_test(i).as<BasicVariable>();
+            andTestReturn = Namespace.getValue(andTestReturn).toBool();
+            if (andTestReturn.getBool()) return BasicVariable(true);
         }
         return BasicVariable(false);
     }
@@ -309,8 +311,9 @@ antlrcpp::Any EvalVisitor::visitAnd_test(Python3Parser::And_testContext *ctx) {
         return visitNot_test(not_test_vector.front());
     else {
         for (auto i:not_test_vector) {
-            if (!(Namespace.getValue(visitNot_test(i).as<BasicVariable>())).getBool())
-                return BasicVariable(false);
+            auto notTestReturn = visitNot_test(i).as<BasicVariable>();
+            notTestReturn = Namespace.getValue(notTestReturn).toBool();
+            if (!notTestReturn.getBool()) return BasicVariable(false);
         }
         return BasicVariable(true);
     }
@@ -432,15 +435,15 @@ antlrcpp::Any EvalVisitor::visitTerm(Python3Parser::TermContext *ctx) {
         for (int i = 0; i < muldivmod_op.size(); ++i) {
             rightValue = Namespace.getValue(visitFactor(factor_vector[i + 1]).as<BasicVariable>());
             const auto &sign = muldivmod_op[i];
-            if (sign->STAR()) {
+            if (sign->STAR())
                 leftValue *= rightValue;
-            } else if (sign->DIV()) {
+            else if (sign->DIV())
                 leftValue /= rightValue;
-            } else if (sign->IDIV()) {
-                leftValue = leftValue.evenlyDivide(rightValue);
-            } else if (sign->MOD()) {
+            else if (sign->IDIV())
+                leftValue.enenlyDivideEqual(rightValue);
+            else if (sign->MOD())
                 leftValue %= rightValue;
-            } else throw pyException("Unexpected Error1 in visitTerm()");
+            else throw pyException("Unexpected Error1 in visitTerm()");
         }
         return leftValue;
     } else throw pyException("Unexpected Error2 in visitTerm()");
@@ -591,7 +594,7 @@ antlrcpp::Any EvalVisitor::visitAtom(Python3Parser::AtomContext *ctx) {
     else if (ctx->FALSE())
         return BasicVariable(false);
     else if (ctx->test()) {
-        const auto testReturn = visitTest(ctx->test());
+        const auto &testReturn = visitTest(ctx->test());
         if (testReturn.is<BasicVariable>())
             return testReturn;
     } else throw pyException("Unexpected Error in visitAtom()");

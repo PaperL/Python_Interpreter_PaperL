@@ -2,8 +2,6 @@
 // Created by PaperL on 2020/12/4.
 //
 
-#define warning
-
 #include "HighPrecision.h"
 
 FFT FFTcmd;
@@ -96,24 +94,23 @@ bool HighPrecision::digitLess(const HighPrecision &x, const HighPrecision &y) co
 
 void HighPrecision::print() const {
 
-#ifdef warning
+#ifdef HighPrecisionWarning
     if (sign != 0 && sign != 1)
         printf("WARNING: sign!=0 or 1 !\n");
-    if (num.size() == 0)
+    if (num.empty())
         printf("WARNING: size==0!\n");
     if (sign == 0 && num.size() == 1 && num[0] == 0)
         printf("WARNING: negative zero!\n");
 #endif
-
     if (sign == 0)putchar('-');
     for (int i = num.size() - 1; i >= 0; --i)
         putchar(num[i] + 48);
 }
 
 HighPrecision::HighPrecision(int k) : sign((k < 0) ? 0 : 1) {
-    if (k == 0)
-        num.emplace_back(0);
+    if (k == 0) num.emplace_back(0);
     else {
+        if (k < 0) k = -k;
         while (k != 0) {
             num.emplace_back(k % 10);
             k /= 10;
@@ -122,24 +119,25 @@ HighPrecision::HighPrecision(int k) : sign((k < 0) ? 0 : 1) {
 }
 
 HighPrecision::HighPrecision(const std::string &arg) {
-    if (arg.empty())
-        sign = 1;
+    if (arg.empty()) sign = 1;
     else {
         sign = (arg[0] == '-') ? 0 : 1;
-        int tempL = arg.length() - 1 + sign;
+        int tempL = arg.length() + (sign - 1);
         for (int i = 1; i <= tempL; ++i)
             num.emplace_back(arg[arg.length() - i] - 48);
     }
 }
 
-HighPrecision::HighPrecision(const HighPrecision &arg, char negativeFlag, int bitwiseMove) {
-    if (-bitwiseMove >= int(arg.num.size())) {
+HighPrecision::HighPrecision(const HighPrecision &arg, char negativeFlag, int bitwiseMove)
+// negativeFlag = 1 则为取反, bitwiseMove 为十进制左移位数
+{
+    if (-bitwiseMove >= int(arg.num.size()))
         *this = highPrecisionZero;
-    } else {
+    else {
         sign = (negativeFlag == 1) ? (1 - arg.sign) : arg.sign;
-        num.resize(bitwiseMove + int(arg.num.size()), 0);
+        num.resize(bitwiseMove + arg.num.size(), 0);
         if (bitwiseMove < 0) {
-            for (int i = 0; i < bitwiseMove + int(arg.num.size()); ++i)
+            for (int i = 0; i < bitwiseMove + arg.num.size(); ++i)
                 num[i] = arg.num[i - bitwiseMove];
         } else {
             for (int i = 0; i < arg.num.size(); ++i)
@@ -161,38 +159,20 @@ std::ostream &operator<<(std::ostream &out, const HighPrecision &arg) {
 }
 
 bool HighPrecision::operator==(const HighPrecision &arg) const {
-    if (this->sign != arg.sign)
-        return false;
-    return (this->num == arg.num);
+    return (this->sign == arg.sign) && (this->num == arg.num);
 }
 
 bool HighPrecision::operator!=(const HighPrecision &arg) const { return !((*this) == arg); }
 
 bool HighPrecision::operator<(const HighPrecision &arg) const {
-    if (this->sign < arg.sign)
-        return true;
-    if (this->sign > arg.sign)
-        return false;
-
-    if (this->sign == 1)
-        return digitLess(*this, arg);
-    else
-        return !digitLess(*this, arg);
+    if (this->sign != arg.sign) return this->sign < arg.sign;
+    else return digitLess(*this, arg) xor (this->sign == 0);
 }
 
 bool HighPrecision::operator<=(const HighPrecision &arg) const {
-    if (this->sign < arg.sign)
-        return true;
-    if (this->sign > arg.sign)
-        return false;
-
-    if (this->num == arg.num)
-        return true;
-
-    if (this->sign == 1)
-        return digitLess(*this, arg);
-    else
-        return !digitLess(*this, arg);
+    if (this->sign != arg.sign) return this->sign < arg.sign;
+    else return (this->num == arg.num) || (digitLess(*this, arg) xor (this->sign == 0));
+    // else 行可优化常数
 }
 
 bool HighPrecision::operator>(const HighPrecision &arg) const { return !((*this) <= arg); }
@@ -310,12 +290,9 @@ HighPrecision HighPrecision::operator*(const HighPrecision &arg) const {
 }
 
 HighPrecision HighPrecision::operator*(int arg) const {
-    if (arg == 0)
-        return highPrecisionZero;
-    if (arg == 1)
-        return *this;
-    if (arg == -1)
-        return HighPrecision((*this), 1);
+    if (arg == 0) return highPrecisionZero;
+    if (arg == 1) return *this;
+    if (arg == -1) return HighPrecision((*this), 1);
 
     HighPrecision ans;
     if (arg < 0) {
@@ -325,8 +302,8 @@ HighPrecision HighPrecision::operator*(int arg) const {
 
     int t, carry = 0;
     ans.num.clear();
-    for (int i = 0; i < this->num.size(); ++i) {
-        t = int(this->num[i]) * arg + carry;
+    for (char i : this->num) {// CLion 自动修正好高级
+        t = int(i) * arg + carry;
         carry = t / 10;
         t %= 10;
         ans.num.emplace_back(t);
@@ -349,24 +326,22 @@ HighPrecision HighPrecision::operator>>(const int arg) const {
 }
 
 HighPrecision HighPrecision::operator/(const HighPrecision &arg) const {
-    if (arg.isZero())
-        throw pyException("Divide Integer Zero");
-    if (this->isZero())
-        return highPrecisionZero;
-    if (digitLess((*this), arg))return highPrecisionZero;
+    if (arg.isZero()) throw pyException("Divide Integer Zero");
+    if (this->isZero()) return highPrecisionZero;
+    if (digitLess((*this), arg))
+        return ((this->sign == arg.sign) ? highPrecisionZero : HighPrecision(-1));
     HighPrecision ans;
     std::vector<char> tempAns;
     ans.sign = (this->sign == arg.sign) ? 1 : 0;
     ans.num.clear();
-
     HighPrecision myself(*this, 1 - this->sign);
-    HighPrecision tempNum;
     int i, j;
     for (i = myself.num.size() - arg.num.size(); i >= 0; --i) {
         HighPrecision tempMulti(arg, 1 - arg.sign, i);
+        HighPrecision tempNum(0);
         j = 0;
         for (j = 1; j <= 9; ++j) {
-            tempNum = tempMulti * j;//todo 此处乘法改成加法可以优化常数
+            tempNum = tempNum + tempMulti;//todo 此处乘法改成加法可以优化常数
             if (tempNum > myself) {
                 --j;
                 break;
@@ -377,7 +352,6 @@ HighPrecision HighPrecision::operator/(const HighPrecision &arg) const {
             myself = myself - tempMulti * j;
         tempAns.emplace_back(j);
     }
-
     i = 0;
     while (tempAns[i] == 0)++i;
     for (j = 0; j < tempAns.size() - i; ++j)
@@ -385,43 +359,17 @@ HighPrecision HighPrecision::operator/(const HighPrecision &arg) const {
 
     if (ans.sign == 0 && !myself.isZero())//整数整除为浮点结果向下取整
         ans = ans - 1;
-
     return ans;
 }
 
 HighPrecision HighPrecision::operator%(const HighPrecision &arg) const {
-    if (arg.isZero())
-        throw pyException("Modulo Integer Zero");
-    if (this->isZero())
-        return highPrecisionZero;
-    if (digitLess((*this), arg))return (*this);
-
-    HighPrecision myself(*this, 1 - this->sign);
-    HighPrecision tempNum;
-    int i, j;
-    for (i = myself.num.size() - arg.num.size(); i >= 0; --i) {
-        HighPrecision tempMulti(arg, 1 - arg.sign, i);
-        j = 0;
-        for (j = 1; j <= 9; ++j) {
-            tempNum = tempMulti * j;
-            if (tempNum > myself) {
-                --j;
-                break;
-            }
-        }
-        if (j == 10)j = 9;
-        if (j != 0)
-            myself = myself - tempMulti * j;
-    }
-
-    if (this->sign == arg.sign || myself.isZero())
-        return myself;
-    else return (abs(arg) - myself);//todo:abs函数未测试
+    if (arg.isZero()) throw pyException("Modulo Integer Zero");
+    if (this->isZero()) return highPrecisionZero;
+    return ((*this) - (*this) / arg * arg);
+    // 本题中取模无论正负定义为: a % b = a - (a // b) * b
 }
 
-HighPrecision::operator bool() const {
-    return !(*this).isZero();
-}
+HighPrecision::operator bool() const { return !(*this).isZero(); }
 
 HighPrecision::operator double() const {
     double temp = 0, base = 1;
@@ -441,19 +389,18 @@ HighPrecision::operator std::string() const {
 }
 
 bool HighPrecision::isZero() const {
-    if (num.size() == 1 && num[0] == 0)
-        return true;
-    return false;
+    return (num.size() == 1) && (num[0] == 0);
 }
 
 char HighPrecision::getSign() const { return sign; }
 
 void HighPrecision::setNegative() {
-    if (!(num.size() == 1 && num[0] == 0))
-        sign = 1 - sign;
+    if (!this->isZero()) sign = 1 - sign;
 }
 
-HighPrecision HighPrecision::abs(const HighPrecision &arg) const {
+HighPrecision HighPrecision::getAbs(const HighPrecision &arg) const
+// 等价于 HighPrecision(arg, 1 - arg.sign)
+{
     if (arg.sign == 0)
         return -arg;
     else return arg;

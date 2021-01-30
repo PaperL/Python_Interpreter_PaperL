@@ -5,6 +5,9 @@
 #ifndef PYTHON_INTERPRETER_PAPERL_HIGHPRECISION_H
 #define PYTHON_INTERPRETER_PAPERL_HIGHPRECISION_H
 
+//#define HighPrecisionWarning
+// 本库针对python解释器有许多调整,因而独立性不强
+
 #include <iostream>
 #include <cstdio>
 #include <string>
@@ -67,11 +70,6 @@ public:
     friend std::ostream &operator<<(std::ostream &out, const HighPrecision &arg);
 
 
-    /*HighPrecision &operator=(const HighPrecision &arg);
-
-    HighPrecision &operator=(HighPrecision &&arg);*/
-
-
     bool operator==(const HighPrecision &arg) const;
 
     bool operator!=(const HighPrecision &arg) const;
@@ -118,7 +116,7 @@ public:
 
     void setNegative();
 
-    HighPrecision abs(const HighPrecision &arg) const;
+    HighPrecision getAbs(const HighPrecision &arg) const;
 };
 
 
