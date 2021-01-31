@@ -88,7 +88,7 @@ BasicVariable::~BasicVariable() { destroy(); }
 BasicVariable::BasicDataType BasicVariable::getType() const { return dataType; }
 
 std::string BasicVariable::getName() const {
-    if (this->dataType!=pyName || name == nullptr)
+    if (this->dataType != pyName || name == nullptr)
         throw pyException("BasicVariable's Name does not Exist");
     return *name;
 }
@@ -100,19 +100,19 @@ bool BasicVariable::getBool() const {
 }
 
 HighPrecision BasicVariable::getInt() const {
-    if (this->dataType!=pyInteger || valInteger == nullptr)
+    if (this->dataType != pyInteger || valInteger == nullptr)
         throw pyException("BasicVariable's Integer does not Exist");
     return (*valInteger);
 }
 
 double BasicVariable::getFloat() const {
-    if (this->dataType!=pyFloatingPoint || valFloatingPoint == nullptr)
+    if (this->dataType != pyFloatingPoint || valFloatingPoint == nullptr)
         throw pyException("BasicVariable's FloatingPoint do not Exist");
     return (*valFloatingPoint);
 }
 
 std::string BasicVariable::getString() const {
-    if (this->dataType!=pyString || valString == nullptr)
+    if (this->dataType != pyString || valString == nullptr)
         throw pyException("BasicVariable's String do not Exist");
     return (*valString);
 }
@@ -452,9 +452,20 @@ BasicVariable &BasicVariable::toInt() {
 
     if (dataType == pyBoolean) tempAns = HighPrecision(valBoolean ? 1 : 0);
     else if (dataType == pyFloatingPoint) tempAns = HighPrecision(int(*valFloatingPoint));
-    else if (dataType == pyString) tempAns = HighPrecision((*valString).empty() ? 0 : 1);
-        //此处string->int相当于string->bool->int
-    else throw pyException("Try to Convert Variable of Null/Name/None to Integer");
+    else if (dataType == pyString) {
+        // 此处 string->int 相当于 string->bool->int
+        // 修正: string 可以转成 int 情况下优先按数码转换
+        //      以及可能不存在自动的 string->bool->int 转化
+        bool stringToIntFlag = true;
+        for (auto i:(*valString)) {
+            if ((i < '0' || i > '9') && i != '-') {
+                stringToIntFlag = false;
+                break;
+            }
+        }
+        if (stringToIntFlag) tempAns = HighPrecision(*valString);
+        else tempAns = HighPrecision((*valString).empty() ? 0 : 1);
+    } else throw pyException("Try to Convert Variable of Null/Name/None to Integer");
 
     destroy();
     dataType = pyInteger;
@@ -496,7 +507,7 @@ BasicVariable &BasicVariable::toStr() {
         // 需要头文件 #include <iomanip>
         char ss[32];
         // sprintf(ss,"%g",*valFloatingPoint); 自动去除末尾0
-        sprintf(ss,"%.6lf",*valFloatingPoint);
+        sprintf(ss, "%.6lf", *valFloatingPoint);
         tempAns = ss;
     } else throw pyException("Try to Convert Variable of Null/Name to String");
 
